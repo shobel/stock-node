@@ -1,0 +1,32 @@
+export default interface IexKeystats {
+    avg10Volume: number
+    avg30Volume: number
+    beta: number
+    companyName: string
+    day200MovingAvg: number
+    day30ChangePercent: number
+    day50MovingAvg: number
+    day5ChangePercent: number
+    dividendYield: number
+    employees: number
+    exDividendDate: string
+    float: number
+    marketcap: number
+    maxChangePercent: number
+    month1ChangePercent: number
+    month3ChangePercent: number
+    month6ChangePercent: number
+    nextDividendDate: string
+    nextEarningsDate: string
+    peRatio: number
+    sharesOutstanding: number
+    ttmDividendRate: number
+    ttmEPS: number
+    week52change: number
+    week52high: number
+    week52low: number
+    year1ChangePercent: number
+    year2ChangePercent: number
+    year5ChangePercent: number
+    ytdChangePercent: number
+}
