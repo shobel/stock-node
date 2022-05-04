@@ -84,7 +84,7 @@ export default class StockMarketUtility {
 
     public getMinutesIntoTradingDay() {
         const numericalTime = Utilities.getMinutesSinceMidnight(new Date())
-        return numericalTime - 420 //420 is the minutes since midnight of 630am (open time)
+        return numericalTime - 390 //390 is the minutes since midnight of 630am (open time)
     }
 
     public isAfterMarket(date:Date):boolean{

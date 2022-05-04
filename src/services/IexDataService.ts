@@ -12,7 +12,7 @@ export default class IexDataService {
 
     private sandboxURL = "https://sandbox.iexapis.com/stable"
     private cloudURL = "https://cloud.iexapis.com/stable"
-    private timeout:number = 100
+    private timeout:number = 200
     private maxAllowedSymbols:number = 100
 
     private allowedTypes = ["cs", "et", "adr"] //our app only deals with common stock and etfs
@@ -128,7 +128,7 @@ export default class IexDataService {
             let currentProgress = 0
             let timeoutCounter = 0
             let combinedResult = {}
-            const maxRetries = 3
+            const maxRetries = 5
             for (let i = 0; i < symbols.length; i += this.maxAllowedSymbols) {
                 timeoutCounter += 1
                 setTimeout(() => {
@@ -138,31 +138,38 @@ export default class IexDataService {
                     } else {
                         symbolsSubset = symbols.slice(i, i + this.maxAllowedSymbols)
                     }
-                    fetchRetry(`${url}&symbols=${symbolsSubset}`, {
+		    fetchRetry(`${url}&symbols=${symbolsSubset}`, {
                         retries: maxRetries,
                         retryDelay: 100 * timeoutCounter,
                         retryOn: function (attempt: number, error: null, response: { status: number }) {
                             if (attempt <= maxRetries && (error !== null || response.status >= 400)) {
-                                // console.log(`retrying ${i + 1} - ${i + symbolsSubset.length}`);
+                                console.log(`retrying ${i + 1} - ${i + symbolsSubset.length}`);
                                 return true;
+                            } else if (attempt > maxRetries) {
+                                console.log(`not retrying ${i + 1} - ${i + symbolsSubset.length}; error: ${error}; response: ${response.status}`);
+                                return false
                             }
                             return false
                         }
+                    }).then((res: any) => {
+                        return res.json()
+                    }).then((json: any) => {
+                        console.log(`fetched ${i + 1} - ${i + symbolsSubset.length}`)
+                        currentProgress += symbolsSubset.length
+                        combinedResult = { ...combinedResult, ...json }
+                        if (currentProgress >= total) {
+                            console.log(`done...fetched ${currentProgress} stocks`)
+                            resolve(combinedResult)
+                        }
+                    }).catch((error: any) => {
+                        // console.log(`failed: ${url}&symbols=${symbolsSubset}`)
+                        console.log(`error fetching ${i + 1} - ${i + symbolsSubset.length}`)
+                        currentProgress += symbolsSubset.length
+                        if (currentProgress >= total) {
+                            console.log(`done...fetched ${currentProgress} stocks`)
+                            resolve(combinedResult)
+                        }
                     })
-                        .then((res: any) => {
-                            return res.json()
-                        })
-                        .then((json: any) => {
-                            // console.log(`fetched ${i + 1} - ${i + symbolsSubset.length}`)
-                            currentProgress += symbolsSubset.length
-                            combinedResult = { ...combinedResult, ...json }
-                            if (currentProgress >= total) {
-                                console.log(`done...fetched ${currentProgress} stocks`)
-                                resolve(combinedResult)
-                            }
-                        }).catch((error: any) => {
-                            console.log(`error fetching ${i + 1} - ${i + symbolsSubset.length}`)
-                        })
                 }, this.timeout * timeoutCounter)
             }
         })
