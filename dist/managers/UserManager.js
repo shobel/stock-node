@@ -11,27 +11,23 @@ class UserManager {
     static getWatchlistForUser(userid) {
         return UserDao_1.default.getUserDaoInstance().getWatchlistForUser(userid);
     }
-    static addToWatchlist(userid, symbol) {
+    static async addToWatchlist(userid, symbol) {
         let newWatchlist = [];
-        return UserDao_1.default.getUserDaoInstance().getWatchlistForUser(userid)
-            .then((watchlist) => {
-            newWatchlist = watchlist ? watchlist : [];
-            if (!newWatchlist.includes(symbol)) {
-                newWatchlist.push(symbol);
-                return UserDao_1.default.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist);
-            }
-            return null;
-        }).then(watchlist => watchlist);
+        let watchlist = UserDao_1.default.getUserDaoInstance().getWatchlistForUser(userid);
+        newWatchlist = watchlist ? watchlist : [];
+        if (!newWatchlist.includes(symbol)) {
+            newWatchlist.push(symbol);
+            return await UserDao_1.default.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist);
+        }
+        return null;
     }
-    static removeFromWatchlist(userid, symbol) {
-        return UserDao_1.default.getUserDaoInstance().getWatchlistForUser(userid)
-            .then((watchlist) => {
-            if (watchlist && watchlist.includes(symbol)) {
-                const newWatchlist = watchlist.filter(s => s !== symbol);
-                return UserDao_1.default.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist);
-            }
-            return null;
-        }).then(watchlist => watchlist);
+    static async removeFromWatchlist(userid, symbol) {
+        let watchlist = UserDao_1.default.getUserDaoInstance().getWatchlistForUser(userid);
+        if (watchlist && watchlist.includes(symbol)) {
+            const newWatchlist = watchlist.filter(s => s !== symbol);
+            return await UserDao_1.default.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist);
+        }
+        return null;
     }
     static setUserScoreSettings(userId, settings) {
         return UserDao_1.default.getUserDaoInstance().setUserScoreSettings(userId, settings);

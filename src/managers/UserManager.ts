@@ -15,25 +15,23 @@ export default class UserManager {
         return UserDao.getUserDaoInstance().getWatchlistForUser(userid)
     }
 
-    public static addToWatchlist(userid:string, symbol:string){
+    public static async addToWatchlist(userid:string, symbol:string){
         let newWatchlist:string[] = []
         let watchlist = UserDao.getUserDaoInstance().getWatchlistForUser(userid)
       
         newWatchlist = watchlist ? watchlist : []
         if (!newWatchlist.includes(symbol)){
             newWatchlist.push(symbol)
-            return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
-            .then(watchlist => watchlist)
+            return await UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
         }
         return null
     }
     
-    public static removeFromWatchlist(userid:string, symbol:string){
+    public static async removeFromWatchlist(userid:string, symbol:string){
         let watchlist = UserDao.getUserDaoInstance().getWatchlistForUser(userid)
         if (watchlist && watchlist.includes(symbol)){
             const newWatchlist = watchlist.filter(s => s !== symbol)
-            return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
-            .then(watchlist => watchlist)
+            return await UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
         }
         return null
     }
