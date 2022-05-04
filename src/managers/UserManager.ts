@@ -17,26 +17,25 @@ export default class UserManager {
 
     public static addToWatchlist(userid:string, symbol:string){
         let newWatchlist:string[] = []
-        return UserDao.getUserDaoInstance().getWatchlistForUser(userid)
-        .then((watchlist:string[]) => {
-            newWatchlist = watchlist ? watchlist : []
-            if (!newWatchlist.includes(symbol)){
-                newWatchlist.push(symbol)
-                return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
-            }
-            return null
-        }).then(watchlist => watchlist)
+        let watchlist = UserDao.getUserDaoInstance().getWatchlistForUser(userid)
+      
+        newWatchlist = watchlist ? watchlist : []
+        if (!newWatchlist.includes(symbol)){
+            newWatchlist.push(symbol)
+            return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
+            .then(watchlist => watchlist)
+        }
+        return null
     }
     
     public static removeFromWatchlist(userid:string, symbol:string){
-        return UserDao.getUserDaoInstance().getWatchlistForUser(userid)
-        .then((watchlist:string[]) => {
-            if (watchlist && watchlist.includes(symbol)){
-                const newWatchlist = watchlist.filter(s => s !== symbol)
-                return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
-            }
-            return null
-        }).then(watchlist => watchlist)
+        let watchlist = UserDao.getUserDaoInstance().getWatchlistForUser(userid)
+        if (watchlist && watchlist.includes(symbol)){
+            const newWatchlist = watchlist.filter(s => s !== symbol)
+            return UserDao.getUserDaoInstance().saveWatchlistForUser(userid, newWatchlist)
+            .then(watchlist => watchlist)
+        }
+        return null
     }
 
     public static setUserScoreSettings(userId:string, settings:any){
