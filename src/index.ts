@@ -3,6 +3,8 @@
 //for local execution, launching program using vscode debugger seems to require .env be in the root folder
 //but for running in firebase, the .env seems to need to be in functions folder
 require('dotenv').config()
+const path = require('path');
+
 console.log(process.cwd())
 console.log(__dirname)
 
@@ -29,18 +31,14 @@ import Utilities from './utils/Utilities';
 //initialize express server
 const app = express();
 
-//could use https because we have self signed cert but it doesnt help us at all
-// const https = require('https');
-//create https server with app
-//const server = https.createServer({key: key, cert: cert }, app);
-
 //add the path to receive request and set json as bodyParser to process the body 
 app.use('/api', BaseRouter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/', (req, res) => {
-    res.send("no no no")
+    //res.send("no no no")
+    res.sendFile(path.join(process.cwd()+'/public//index.html'));
 });
 
 //Start local server for development. Apparently firebase function will automatically listen on a port

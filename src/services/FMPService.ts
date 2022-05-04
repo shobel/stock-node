@@ -480,8 +480,8 @@ export default class FMPService {
             let end = Date.now()
             let dur = (end - start) / 1000
             console.log(`fetched nasdaq. Done fetching quotes in ${dur} secs`)
-            allData = [...allData, ...res2]
-            url = `${FMPService.baseUrlv3}quotes/amex?apikey=${FMPService.apikey}`
+	    allData = [...allData, ...res2]
+	    url = `${FMPService.baseUrlv3}quotes/amex?apikey=${FMPService.apikey}`
             return FMPService.fetchDataFromUrl(url)
         }).then(res3 => {
             let end = Date.now()
