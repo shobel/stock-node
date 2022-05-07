@@ -30,6 +30,14 @@ userRouter.post('/verifyReceipt', async (req: Request, res: Response) => {
     })
 })
 
+userRouter.get('/createUser/:email', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    const email = req.params.email
+    //create new user in firestore
+    const userDoc = await UserManager.createNewUser(userid, email)
+    res.status(200).send(userDoc)
+})            
+
 userRouter.get('/getReceipts', async (req: Request, res: Response) => {
     const userid = res.locals.userid
     let receipts = await UserManager.getReceiptsForUser(userid)

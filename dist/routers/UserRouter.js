@@ -27,6 +27,13 @@ userRouter.post('/verifyReceipt', async (req, res) => {
         res.status(200).send({ credits: credits });
     });
 });
+userRouter.get('/createUser/:email', async (req, res) => {
+    const userid = res.locals.userid;
+    const email = req.params.email;
+    //create new user in firestore
+    const userDoc = await UserManager_1.default.createNewUser(userid, email);
+    res.status(200).send(userDoc);
+});
 userRouter.get('/getReceipts', async (req, res) => {
     const userid = res.locals.userid;
     let receipts = await UserManager_1.default.getReceiptsForUser(userid);

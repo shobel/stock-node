@@ -1,10 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const admin = require("firebase-admin");
+const auth = require("firebase/auth");
 const VerifyAppleToken_1 = require("../utils/VerifyAppleToken");
 const UserManager_1 = require("../managers/UserManager");
 const rp = require('request-promise');
 class AuthenticationService {
+    //1. verify apple token from Sign in with Apple 
+    //2. if apple token can be verified, user is retrieved (or created) from firebase Auth by email from apple token 
+    //      (what if there is no email in apple token?)
+    //3. We have the firebase user now, we ask firebase to create a token
+    //4. we verify the firebase token and return the token response or the email from the response
     static async signInWithAppleToken(appleToken) {
         let claims = null;
         try {
@@ -54,6 +60,11 @@ class AuthenticationService {
             return tokenResponse;
         }
         return null;
+    }
+    static async signInWithEmailAndPassword(email, password) {
+        auth.signInWithEmailAndPassword(auth.getAuth(), email, password).then(user => {
+            console.log(user);
+        });
     }
     static async getNewIdTokenWithRefreshToken(refreshToken) {
         let tokenResponse = null;

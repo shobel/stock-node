@@ -39,6 +39,10 @@ export default class UserDao extends BaseDao {
         return this.userDaoInstance
     }
 
+    public getUserDocByEmail(email:string){
+        return this.snapshotCache[email]
+    }
+
     public getWatchlistForUser(userid:string){
         let watchlist = this.snapshotCache[userid]?.get(this.watchlistField)
         if (!watchlist){

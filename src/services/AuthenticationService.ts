@@ -1,10 +1,16 @@
 import * as admin from 'firebase-admin';
+import * as auth from "firebase/auth";
 import verifyAppleToken from '../utils/VerifyAppleToken';
 import UserManager from '../managers/UserManager';
 const rp = require('request-promise');
 
 export default class AuthenticationService {
 
+    //1. verify apple token from Sign in with Apple 
+    //2. if apple token can be verified, user is retrieved (or created) from firebase Auth by email from apple token 
+    //      (what if there is no email in apple token?)
+    //3. We have the firebase user now, we ask firebase to create a token
+    //4. we verify the firebase token and return the token response or the email from the response
     public static async signInWithAppleToken(appleToken: string) {
         let claims: any = null
         try {
@@ -53,6 +59,12 @@ export default class AuthenticationService {
             return tokenResponse
         }
         return null
+    }
+
+    public static async signInWithEmailAndPassword(email:string, password:string) {
+        auth.signInWithEmailAndPassword(auth.getAuth(), email, password).then(user => {
+            console.log(user)
+        })
     }
 
     public static async getNewIdTokenWithRefreshToken(refreshToken: string) {

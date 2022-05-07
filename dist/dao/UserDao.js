@@ -32,6 +32,9 @@ class UserDao extends BaseDao_1.default {
     static getUserDaoInstance() {
         return this.userDaoInstance;
     }
+    getUserDocByEmail(email) {
+        return this.snapshotCache[email];
+    }
     getWatchlistForUser(userid) {
         var _a;
         let watchlist = (_a = this.snapshotCache[userid]) === null || _a === void 0 ? void 0 : _a.get(this.watchlistField);

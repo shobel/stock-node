@@ -23,6 +23,7 @@
     "express-rate-limit": "^5.1.3",
     "fetch-retry": "^3.1.0",
     "financialmodelingprep": "^1.1.0",
+    "firebase": "^9.7.0",
     "firebase-admin": "^8.12.1",
     "firebase-functions": "^3.6.2",
     "fs": "0.0.1-security",

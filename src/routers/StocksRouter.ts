@@ -8,10 +8,10 @@ import { memoryUsage } from 'process';
 const stockRouter = Router();
 const chartService = ChartService.getChartServiceInstance()
 
-stockRouter.use((req, res, next) => {
-    console.log(memoryUsage());
-    next()
-})
+// stockRouter.use((req, res, next) => {
+//     console.log(memoryUsage());
+//     next()
+// })
 
 /* Returns map of quotes. Keys are symbols and values are quote objects */
 // TODO: when a client requests quotes, and the market is in premarket or aftermarket, 

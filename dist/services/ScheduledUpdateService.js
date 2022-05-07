@@ -48,8 +48,8 @@ class ScheduledUpdateService {
     async initSnapShots() {
         console.log("init dao caches");
         //for testing, comment next line and call this.initRest() manually
-        await this.stockDao.initStockSnapshotCaches(this);
-        //this.initRest() //dont need this call unless testing
+        //await this.stockDao.initStockSnapshotCaches(this)
+        this.initRest(); //dont need this call unless testing
     }
     async initRest() {
         console.log("deleting empty documents");
