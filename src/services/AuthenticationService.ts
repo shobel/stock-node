@@ -61,12 +61,6 @@ export default class AuthenticationService {
         return null
     }
 
-    public static async signInWithEmailAndPassword(email:string, password:string) {
-        auth.signInWithEmailAndPassword(auth.getAuth(), email, password).then(user => {
-            console.log(user)
-        })
-    }
-
     public static async getNewIdTokenWithRefreshToken(refreshToken: string) {
         let tokenResponse:any = null
         try {
