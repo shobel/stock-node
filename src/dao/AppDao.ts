@@ -11,7 +11,7 @@ export default class AppDao extends BaseDao {
 
     private creditValueBase:number = 0.1 //1 credit = 10cents, can be updated manually
     private dollarOfIexCredits = 1000000 //1 dollar gets you 500k iex credits
-
+    private tipranksFetchCounterField:string = "tipranksFetchCounter"
     private static appDaoInstance:AppDao = new AppDao()
 
     constructor() {
@@ -223,6 +223,23 @@ export default class AppDao extends BaseDao {
             }
             return false
         })
+    }
+
+    public getTipranksFetchCounter(){
+        return this.db.collection(this.appCollection).doc(this.generalDoc).get()
+        .then(snapshot => {
+            let c = snapshot.get(this.tipranksFetchCounterField)
+            if (c == null){
+                return 0
+            }
+            return c
+        })
+    }
+
+    public setTipranksFetchCounter(counter:number){
+        return this.db.collection(this.appCollection).doc(this.generalDoc).set(
+            { [this.tipranksFetchCounterField]: counter }
+        ).catch()
     }
 
 }

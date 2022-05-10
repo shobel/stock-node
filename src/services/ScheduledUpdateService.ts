@@ -59,7 +59,7 @@ export default class ScheduledUpdateService {
         this.min30Updater = new cron.CronJob('0 */30 * * * *', this.scheduled30MinUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
 
         //runs at 6:30am PST every day (0 30 6 * * *)
-        this.morningUpdater = new cron.CronJob('0 30 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
+        this.morningUpdater = new cron.CronJob('0 35 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
 
         //runs at 1:05pm PST every trading day (0 5 13 * * *)
         this.marketCloseUpdater = new cron.CronJob('0 5 13 * * *', this.scheduledAfternoonUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
@@ -210,12 +210,24 @@ export default class ScheduledUpdateService {
     // market-wide news and the start of real-time quotes
     public async scheduledMorningUpdate(){
         let smu = StockMarketUtility.getStockMarketUtility()
-        console.log(`${Utilities.convertUnixTimestampToTimeString12(Date.now())}: 630am pst update`)
+        console.log(`${Utilities.convertUnixTimestampToTimeString12(Date.now())}: 635am pst update`)
+        //in case fmp says market isnt open when it really is (due to some error), we should check a bunch of times 
         smu.isMarketOpen = await FMPService.getIsMarketOpen()
         if (smu.isMarketOpen) {
             console.log("starting real-time quote fetcher")
             QuoteService.fetchLatestQuotesUntilMarketCloses(false)
-        }    
+        }  
+
+        let delay = 1000*60*30 //30min
+        if (!smu.isMarketOpen) {
+            setTimeout(async function() {
+                smu.isMarketOpen = await FMPService.getIsMarketOpen()
+                if (smu.isMarketOpen) {
+                    console.log("starting real-time quote fetcher")
+                    QuoteService.fetchLatestQuotesUntilMarketCloses(false)
+                }  
+            }, delay) 
+        }  
     }
 
     // sector performance and economic data
