@@ -71,8 +71,10 @@ export default class TwitterApiService {
         let twitterAccountsSet = new Set()
         for (let snap of allUserSnapshots){
             let twitterList = (snap as any).get(UserDao.getUserDaoInstance().twitterAccountsArrayField)
-            for (let twitterAccount of twitterList){
-                twitterAccountsSet.add(twitterAccount)
+            if (twitterList != null){
+                for (let twitterAccount of twitterList){
+                    twitterAccountsSet.add(twitterAccount)
+                }
             }
         }
         for (let account of twitterAccountsSet) {
@@ -221,7 +223,7 @@ export default class TwitterApiService {
         let udi = UserDao.getUserDaoInstance()
         let userSnap:any = await udi.getDocSnapshotsInCollection(udi.userCollection, userid)
         let existingTwitterAccounts:any[] = userSnap.get(udi.twitterAccountsArrayField)
-        if (!existingTwitterAccounts.includes(username.toLowerCase())) {
+        if (!existingTwitterAccounts || !existingTwitterAccounts.includes(username.toLowerCase())) {
             return
         }
         if (symbol.toUpperCase() == "RECENT"){
@@ -238,10 +240,12 @@ export default class TwitterApiService {
         let userSnap:any = await udi.getDocSnapshotsInCollection(udi.userCollection, userid)
         let existingTwitterAccounts:any[] = userSnap.get(udi.twitterAccountsArrayField)
         let twitterAccounts:any[] = []
-        for (let acc of existingTwitterAccounts){
-            let snap = await TwitterDao.twitterDao.getDocSnapshot(acc.toLowerCase())
-            if (snap){
-                twitterAccounts.push(snap.data())
+        if (existingTwitterAccounts != null){
+            for (let acc of existingTwitterAccounts){
+                let snap = await TwitterDao.twitterDao.getDocSnapshot(acc.toLowerCase())
+                if (snap){
+                    twitterAccounts.push(snap.data())
+                }
             }
         }
         return twitterAccounts
