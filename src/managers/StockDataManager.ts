@@ -496,17 +496,18 @@ export default class StockDataManager {
         if (!StockDataManager.allCompaniesCache || !StockDataManager.allCompaniesCache.length ||
             Date.now() - StockDataManager.allCompaniesCacheLastUpdate > StockDataManager.allCompaniesCacheValidity) {
             let companies:any = StockDataManager.stockDao.getStockDocumentFieldForAllSymbols(StockDataManager.stockDao.companyField)
-            companies.map(c => {
-                const company: Company = {
+            let companiesSimped:any
+            for (let c of companies){
+                const companySimped: Company = {
                     symbol: c.symbol,
                     companyName: c.companyName
                 }
-                return company
-            })
+                companiesSimped.push(companySimped)
+            }
             
-            StockDataManager.allCompaniesCache = companies
+            StockDataManager.allCompaniesCache = companiesSimped
             StockDataManager.allCompaniesCacheLastUpdate = Date.now()
-            return companies
+            return companiesSimped
         } else {
             return StockDataManager.allCompaniesCache
         }
