@@ -496,7 +496,7 @@ export default class StockDataManager {
         if (!StockDataManager.allCompaniesCache || !StockDataManager.allCompaniesCache.length ||
             Date.now() - StockDataManager.allCompaniesCacheLastUpdate > StockDataManager.allCompaniesCacheValidity) {
             let companies:any = StockDataManager.stockDao.getStockDocumentFieldForAllSymbols(StockDataManager.stockDao.companyField)
-            let companiesSimped:any
+            let companiesSimped:any = []
             for (let c of companies){
                 const companySimped: Company = {
                     symbol: c.symbol,
