@@ -238,7 +238,7 @@ export default class AppDao extends BaseDao {
 
     public setTipranksFetchCounter(counter:number){
         return this.db.collection(this.appCollection).doc(this.generalDoc).set(
-            { [this.tipranksFetchCounterField]: counter }
+            { [this.tipranksFetchCounterField]: counter }, { merge: true }
         ).catch()
     }
 
