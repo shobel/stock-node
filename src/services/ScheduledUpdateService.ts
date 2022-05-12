@@ -242,7 +242,7 @@ export default class ScheduledUpdateService {
             return null
         }).then(() => {
             //weekly economy
-            return this.iexDataService.getWeeklyEconomicData().then(data => {
+            return FMPService.getWeeklyEconomicData().then(data => {
                 for (let d of data){
                     this.marketDao.saveEconomicData(this.marketDao.economicDataCollectionWeekly, d.id, d).then().catch()
                 }
@@ -250,7 +250,7 @@ export default class ScheduledUpdateService {
             })
         }).then(() => {
             //monthly economy
-            return this.iexDataService.getMonthlyEconomicData().then(data => {
+            return FMPService.getMonthlyEconomicData().then(data => {
                 for (let d of data){
                     this.marketDao.saveEconomicData(this.marketDao.economicDataCollectionMonthly, d.id, d).then().catch()
                 }

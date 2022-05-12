@@ -12,19 +12,19 @@ export default class MarketDataManager {
     public static tipranksSymbolCacheUpdateIntervalMs:number = 10800000 //3 hours
 
     public static initWeeklyEconomicData(){
-        return MarketDataManager.iexDataService.getWeeklyEconomicData(true).then(data => {
+        return FMPService.getWeeklyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionWeekly, "id", data, false)
         })
     }
     
     public static initMonthlyEconomicData(){
-        return MarketDataManager.iexDataService.getMonthlyEconomicData(true).then(data => {
+        return FMPService.getMonthlyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionMonthly, "id", data, false)
         })
     }
 
     public static initQuarterlyEconomicData(){
-        return FMPService.getQuarterlyEconomicData().then(data => {
+        return FMPService.getQuarterlyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionQuarterly, "id", data, false)
         })
     }

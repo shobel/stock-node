@@ -519,7 +519,7 @@ export default class IexDataService {
         const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
         let fromTo = ""
         if (init){
-            fromTo += `&from=2010-01-01&to=${todayString}`
+            fromTo += `&from=2017-01-01&to=${todayString}`
         }
         const endpoint = "time-series/economic"
         let aggregatedObject:any = {}
@@ -560,7 +560,7 @@ export default class IexDataService {
         const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
         let fromTo = ""
         if (init){
-            fromTo += `&from=2010-01-01&to=${todayString}`
+            fromTo += `&from=2015-01-01&to=${todayString}`
         }
         let aggregatedObject:any = {}
         const url = `${this.configuredUrl}/time-series/economic/${this.realgdpEndpoint}?token=${this.configuredToken}${fromTo}`

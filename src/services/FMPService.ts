@@ -1,20 +1,15 @@
-import IexDataService from "./IexDataService";
 import ChartEntry from "../models/ChartEntry";
 import Utilities from "../utils/Utilities";
-import StockMarketUtility from "../utils/StockMarketUtility";
-import TechnicalsUtility from "../utils/TechnicalsUtility";
 import StockDao from "../dao/StockDao";
-import ChartDao from "../dao/ChartDao";
 import SimplifiedBalanceSheet from "../models/SimplifiedBalanceSheet";
 import SimplifiedIncome from "../models/SimplifiedIncome";
 import SimplifiedCashFlow from "../models/SimplifiedCashFlow";
 import SimplifiedEarnings from "../models/SimplifiedEarnings";
-import ChartService from "./ChartService";
 import SimplifiedAdvancedStats from "../models/SimplifiedAdvancedStats";
 import SimpleQuote from "../models/SimpleQuote";
 import ScheduledUpdateService from "./ScheduledUpdateService";
 import StockDataService from "./StockDataService";
-import QuoteService from "./QuoteService";
+import delay = require('delay');
 const fetch = require('node-fetch');
 const fetchRetry = require('fetch-retry')(fetch);
 
@@ -812,9 +807,83 @@ export default class FMPService {
         })
     }
 
-    public static getQuarterlyEconomicData(){
-        let from = `&from=2010-01-01`
+    public static getWeeklyEconomicData(init:boolean = false){
+        let from = Utilities.convertUnixTimestampToDateString(Date.now())
+        if (init){
+            from = `2017-01-01`
+        }        
         let aggregatedObject:any = {}
+        let url = `${FMPService.baseUrlv4}economic?name=initialClaims&from=${from}&apikey=${FMPService.apikey}`
+        return fetch(url)
+        .then((res: { json: () => any; }) => res.json())
+        .then((data1: any) => {
+            aggregatedObject = FMPService.addEconomyArrayDataToAggregate(aggregatedObject, "initialClaims", data1)
+            return Object.values(aggregatedObject)
+        })
+    }
+
+    public static getMonthlyEconomicData(init:boolean = false){
+        let from = Utilities.convertUnixTimestampToDateString(Date.now())
+        if (init){
+            from = `2017-01-01`
+        }
+        let aggregatedObject:any = {}
+        let url = `${FMPService.baseUrlv4}economic?name=smoothedUSRecessionProbabilities&from=${from}&apikey=${FMPService.apikey}`
+        return fetch(url)
+        .then((res: { json: () => any; }) => res.json())
+        .then((data1: any) => {
+            aggregatedObject = FMPService.addEconomyArrayDataToAggregate(aggregatedObject, "recessionProbability", data1)
+            url = `${FMPService.baseUrlv4}economic?name=unemploymentRate&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data2: any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "unemploymentPercent", data2)
+            url = `${FMPService.baseUrlv4}economic?name=federalFunds&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data3: any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "fedFundsRate", data3)
+            url = `${FMPService.baseUrlv4}economic?name=CPI&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data4: any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerPriceIndex", data4)
+            url = `${FMPService.baseUrlv4}economic?name=industrialProductionTotalIndex&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data5:any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "industrialProductionIndex", data5)
+            url = `${FMPService.baseUrlv4}economic?name=retailSales&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data6:any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailSales", data6)
+            url = `${FMPService.baseUrlv4}economic?name=consumerSentiment&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data7:any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerSentiment", data7)
+            url = `${FMPService.baseUrlv4}economic?name=retailMoneyFunds&from=${from}&apikey=${FMPService.apikey}`
+            return delay(1000).then(() => fetch(url))
+        })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data8:any) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailMoneyFunds", data8)
+            return Object.values(aggregatedObject)
+        })
+    }
+
+    public static getQuarterlyEconomicData(init:boolean = false){
+        let from = Utilities.convertUnixTimestampToDateString(Date.now())
+        if (init){
+            from = `2015-01-01`
+        }
         const url = `${FMPService.baseUrlv4}economic?name=realGDP&from=${from}&apikey=${FMPService.apikey}`
         return fetch(url)
         .then((res: { json: () => any; }) => res.json())
@@ -1072,5 +1141,26 @@ export default class FMPService {
             }
         }
         return aggregateArray
+    }
+
+    public static addEconomyArrayDataToAggregate(aggregatedObject: any, key: string, data: any[]) {
+        for (let d of data) {
+            let dateTimestamp = d.date
+            
+            //sandbox doesnt have the date field so we have to use "updated" for testing
+            if (!dateTimestamp) {
+                dateTimestamp = d.updated
+            }
+            
+            if (dateTimestamp) {
+                const dateString = dateTimestamp
+                if (!aggregatedObject.hasOwnProperty(dateString)) {
+                    aggregatedObject[dateString] = {}
+                    aggregatedObject[dateString].id = dateString
+                }
+                aggregatedObject[dateString][key] = d.value
+            }
+        }
+        return aggregatedObject
     }
 }
