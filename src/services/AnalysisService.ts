@@ -288,10 +288,14 @@ export default class AnalysisService {
                 let diff = parseInt(futureYear) - parseInt(currentYear)
                 let revCagr = Math.pow(est.estimatedRevenueAvg / incAnnual.totalRevenue, 1/diff) - 1
                 let incCagr = Math.pow(est.estimatedNetIncomeAvg / incAnnual.netIncome, 1/diff) - 1
-                marketMetrics.futureRevenueGrowth.push(revCagr)
-                symbolMetrics[symbol].futureRevenueGrowth = revCagr
-                marketMetrics.futureIncomeGrowth.push(incCagr)
-                symbolMetrics[symbol].futureIncomeGrowth = incCagr
+                if (revCagr && Utilities.isValidNumber(revCagr)){
+                    marketMetrics.futureRevenueGrowth.push(revCagr)
+                    symbolMetrics[symbol].futureRevenueGrowth = revCagr
+                }
+                if (incCagr && Utilities.isValidNumber(incCagr)){
+                    marketMetrics.futureIncomeGrowth.push(incCagr)
+                    symbolMetrics[symbol].futureIncomeGrowth = incCagr
+                }
             }
 
             //profit margin growth
