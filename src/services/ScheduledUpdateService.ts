@@ -342,7 +342,7 @@ export default class ScheduledUpdateService {
                     })
                 }
             })
-            //get recommendations every 60 days (once per 3 months)
+            //get recommendations every 90 days (once per 3 months)
             await this.stockDao.getMostRecentDocFromSubCollectionForSymbol(firstSymbol, this.stockDao.recommendationCollection).then(rec => {
                 if (!rec || Utilities.countDaysBetweenDates(Date.now(), rec.id) >= 90) {
                     console.log("Midnight update: recommendations (tri-monthly)")

@@ -76,18 +76,20 @@ export default class IexDataService {
         return this.iexDataServiceInstance
     }
 
-    public getAccountMetadata(){
-        const url = `${this.configuredUrl}/account/metadata?token=${this.configuredToken}`
-        return fetch(url)
-        .then((res: { json: () => any; }) => res.json())
-        .then((data: any) => {
-            return data
-        }).catch()
-    }
+    // public getAccountMetadata(){
+    //     const url = `${this.configuredUrl}/account/metadata?token=${this.configuredToken}`
+    //     return fetch(url)
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data: any) => {
+    //         return data
+    //     }).catch()
+    // }
 
     /* Can be used to retrieve any single data object for a single symbol, so won't work for the period based endpoints
      * Works for: company, logo, peers (returns a single array, but that's ok), stats, advanced-stats, price-target
      * Shouldn't be used for: news, balance-sheet, cash-flow, earnings, income, recommendations-trends, estimates,
+     * 
+     * Used currently for price targets and recommendations only when there is no data in the database (so basically never)
      */
     public getSimpleDatatypeForSymbol(symbol:string, datatype:string){
         const url = `${this.configuredUrl}/stock/${symbol}/${datatype}?token=${this.configuredToken}`
@@ -113,12 +115,12 @@ export default class IexDataService {
         }).catch()
     }
 
-    public batchRequestMultipleEndpointsForSymbol(symbol:string, endpoints:string[]){
-        const url = `${this.configuredUrl}/stock/market/batch?symbols=${symbol}&types=${endpoints.toString()}&token=${this.configuredToken}`
-        return fetch(url)
-        .then((res: { json: () => any; }) => res.json())
-        .then((data: any) => data[symbol]).catch()
-    }
+    // public batchRequestMultipleEndpointsForSymbol(symbol:string, endpoints:string[]){
+    //     const url = `${this.configuredUrl}/stock/market/batch?symbols=${symbol}&types=${endpoints.toString()}&token=${this.configuredToken}`
+    //     return fetch(url)
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data: any) => data[symbol]).catch()
+    // }
 
     //url = `${this.configuredUrl}/stock/market/batch?symbols=${symbolsSubset}&types=chart&range=date&exactDate=20200526&chartCloseOnly=true&chartByDay=true&token=${this.configuredToken}`
     //url should not include symbols because those will be added to the end of the url in subsets by this function
@@ -210,14 +212,14 @@ export default class IexDataService {
     }
 
     // Returns single quote object with symbol as a field
-    public getLatestQuoteForSymbol(symbol: string) {
-        const url = `${this.configuredUrl}/stock/${symbol}/quote?token=${this.configuredToken}`
-        return fetch(url)
-            .then((res: { json: () => any; }) => res.json())
-            .then((data: any) => {
-                return data
-            })
-    }
+    // public getLatestQuoteForSymbol(symbol: string) {
+    //     const url = `${this.configuredUrl}/stock/${symbol}/quote?token=${this.configuredToken}`
+    //     return fetch(url)
+    //         .then((res: { json: () => any; }) => res.json())
+    //         .then((data: any) => {
+    //             return data
+    //         })
+    // }
 
     public async getIntradayPricesForSymbol(symbol: string, last: any = null) {
         let url = `${this.configuredUrl}/stock/${symbol}/intraday-prices?chartIEXOnly=true&token=${this.configuredToken}`
@@ -235,39 +237,39 @@ export default class IexDataService {
             })
     }
 
-    public getCompanyLogoPeersForSymbols(symbols:string[]){
-        if (symbols.length > this.maxAllowedSymbols) {
-            const url = `${this.configuredUrl}/stock/market/batch?types=company,logo,peers&token=${this.configuredToken}`
-            return this.fetchDataForMoreThanMaxAllowedSymbols(symbols, url).then(data => {
-                return data
-            }).catch()
-        } else {
-            const url = `${this.configuredUrl}/stock/market/batch?types=company,logo,peers&token=${this.configuredToken}&symbols=${symbols}`
-            return fetch(url)
-                .then((res: { json: () => any; }) => res.json())
-                .then((data: any) => {
-                    return data
-                }).catch()
-        }
-    }
+    // public getCompanyLogoPeersForSymbols(symbols:string[]){
+    //     if (symbols.length > this.maxAllowedSymbols) {
+    //         const url = `${this.configuredUrl}/stock/market/batch?types=company,logo,peers&token=${this.configuredToken}`
+    //         return this.fetchDataForMoreThanMaxAllowedSymbols(symbols, url).then(data => {
+    //             return data
+    //         }).catch()
+    //     } else {
+    //         const url = `${this.configuredUrl}/stock/market/batch?types=company,logo,peers&token=${this.configuredToken}&symbols=${symbols}`
+    //         return fetch(url)
+    //             .then((res: { json: () => any; }) => res.json())
+    //             .then((data: any) => {
+    //                 return data
+    //             }).catch()
+    //     }
+    // }
 
     // Returns object where the keys are the symbol and values are the latest quote
     // With test data: seems to take about a second per 100 symbols -> 8 seconds for all stocks
-    public getLatestQuoteForSymbols(symbols: string[]) {
-        if (symbols.length > this.maxAllowedSymbols) {
-            const url = `${this.configuredUrl}/stock/market/batch?types=quote,intraday-prices&chartIEXOnly=true&chartSimplify=true&token=${this.configuredToken}`
-            return this.fetchDataForMoreThanMaxAllowedSymbols(symbols, url).then(data => {
-                return data
-            }).catch()
-        } else {
-            const url = `${this.configuredUrl}/stock/market/batch?types=quote,intraday-prices&chartIEXOnly=true&chartSimplify=true&token=${this.configuredToken}&symbols=${symbols}`
-            return fetch(url)
-                .then((res: { json: () => any; }) => res.json()).catch()
-                .then((data: any) => {
-                    return data
-                }).catch()
-        }
-    }
+    // public getLatestQuoteForSymbols(symbols: string[]) {
+    //     if (symbols.length > this.maxAllowedSymbols) {
+    //         const url = `${this.configuredUrl}/stock/market/batch?types=quote,intraday-prices&chartIEXOnly=true&chartSimplify=true&token=${this.configuredToken}`
+    //         return this.fetchDataForMoreThanMaxAllowedSymbols(symbols, url).then(data => {
+    //             return data
+    //         }).catch()
+    //     } else {
+    //         const url = `${this.configuredUrl}/stock/market/batch?types=quote,intraday-prices&chartIEXOnly=true&chartSimplify=true&token=${this.configuredToken}&symbols=${symbols}`
+    //         return fetch(url)
+    //             .then((res: { json: () => any; }) => res.json()).catch()
+    //             .then((data: any) => {
+    //                 return data
+    //             }).catch()
+    //     }
+    // }
 
     public getSimplifiedChartForSymbols(symbols:string[], maxDataPoints:number){
         if (symbols.length > this.maxAllowedSymbols) {
@@ -426,14 +428,16 @@ export default class IexDataService {
     // }
 
     // Returns object where keys are symbols and values are the corresponding stats object 
-    public getKeyStatsForSymbols(symbols:string[]){
-        return this.getDataTypeForSymbols(symbols, this.keyStatsEndpoint, this.keyStatsEndpoint)
-    }
+    // public getKeyStatsForSymbols(symbols:string[]){
+    //     return this.getDataTypeForSymbols(symbols, this.keyStatsEndpoint, this.keyStatsEndpoint)
+    // }
 
+    //scheduled to be called every 2 months
     public getPriceTargetsForSymbols(symbols:string[]){
         return this.getDataTypeForSymbols(symbols, this.priceTargetEndpoint, this.priceTargetEndpoint)
     }
 
+    //scheduled to be called every 3 months
     public getRecommendationsForSymbols(symbols:string[]){
         return this.getDataTypeForSymbols(symbols, this.recommendationsEndpoint, this.recommendationsEndpoint).then(recs => {
             const returnRecs = {}
@@ -447,14 +451,14 @@ export default class IexDataService {
     }
 
     // Returns single company object without symbol field
-    public getCompany(symbol: string) {
-        const url = `${this.configuredUrl}/stock/${symbol}/company?token=${this.configuredToken}`
-        return fetch(url)
-            .then((res: { json: () => any; }) => res.json())
-            .then((json: any) => {
-                return json
-            }).catch()
-    }
+    // public getCompany(symbol: string) {
+    //     const url = `${this.configuredUrl}/stock/${symbol}/company?token=${this.configuredToken}`
+    //     return fetch(url)
+    //         .then((res: { json: () => any; }) => res.json())
+    //         .then((json: any) => {
+    //             return json
+    //         }).catch()
+    // }
 
     // public getNewsForSymbol(symbol:string, limit:number){
     //     const url = `${this.configuredUrl}/stock/${symbol}/news?last=${limit}&token=${this.configuredToken}`
@@ -465,112 +469,112 @@ export default class IexDataService {
     //         }).catch()
     // }
 
-    public addEconomyArrayDataToAggregate(aggregatedObject: any, key: string, data: any[]) {
-        for (let d of data) {
-            let dateTimestamp = d.date
+    // public addEconomyArrayDataToAggregate(aggregatedObject: any, key: string, data: any[]) {
+    //     for (let d of data) {
+    //         let dateTimestamp = d.date
             
-            //sandbox doesnt have the date field so we have to use "updated" for testing
-            if (!dateTimestamp) {
-                dateTimestamp = d.updated
-            }
+    //         //sandbox doesnt have the date field so we have to use "updated" for testing
+    //         if (!dateTimestamp) {
+    //             dateTimestamp = d.updated
+    //         }
             
-            if (dateTimestamp) {
-                const dateString = Utilities.convertUnixTimestampToDateString(dateTimestamp)
-                if (!aggregatedObject.hasOwnProperty(dateString)) {
-                    aggregatedObject[dateString] = {}
-                    aggregatedObject[dateString].id = dateString
-                }
-                aggregatedObject[dateString][key] = d.value
-            }
-        }
-        return aggregatedObject
-    }
+    //         if (dateTimestamp) {
+    //             const dateString = Utilities.convertUnixTimestampToDateString(dateTimestamp)
+    //             if (!aggregatedObject.hasOwnProperty(dateString)) {
+    //                 aggregatedObject[dateString] = {}
+    //                 aggregatedObject[dateString].id = dateString
+    //             }
+    //             aggregatedObject[dateString][key] = d.value
+    //         }
+    //     }
+    //     return aggregatedObject
+    // }
 
-    public getWeeklyEconomicData(init:boolean = false){
-        const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
-        let fromTo = ""
-        if (init){
-            fromTo += `&from=2010-01-01&to=${todayString}`
-        }
-        const endpoint = "time-series/economic"
-        let aggregatedObject:any = {}
-        let url = `${this.configuredUrl}/${endpoint}/${this.retailMoneyFundsEndpoint}?token=${this.configuredToken}${fromTo}`
-        return fetch(url)
-        .then((res: { json: () => any; }) => res.json())
-        .then((data1: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailMoneyFunds", data1)
-            url = `${this.configuredUrl}/${endpoint}/${this.institutionalMoneyFundsEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(100).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data2: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "institutionalMoneyFunds", data2)
-            url = `${this.configuredUrl}/${endpoint}/${this.initialClaimsEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(100).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data3: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "initialClaims", data3)
-            return Object.values(aggregatedObject)
-        })
-    }
+    // public getWeeklyEconomicData(init:boolean = false){
+    //     const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
+    //     let fromTo = ""
+    //     if (init){
+    //         fromTo += `&from=2010-01-01&to=${todayString}`
+    //     }
+    //     const endpoint = "time-series/economic"
+    //     let aggregatedObject:any = {}
+    //     let url = `${this.configuredUrl}/${endpoint}/${this.retailMoneyFundsEndpoint}?token=${this.configuredToken}${fromTo}`
+    //     return fetch(url)
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data1: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailMoneyFunds", data1)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.institutionalMoneyFundsEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(100).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data2: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "institutionalMoneyFunds", data2)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.initialClaimsEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(100).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data3: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "initialClaims", data3)
+    //         return Object.values(aggregatedObject)
+    //     })
+    // }
 
-    public getMonthlyEconomicData(init:boolean = false){
-        const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
-        let fromTo = ""
-        if (init){
-            fromTo += `&from=2017-01-01&to=${todayString}`
-        }
-        const endpoint = "time-series/economic"
-        let aggregatedObject:any = {}
-        let url = `${this.configuredUrl}/${endpoint}/${this.recessionEndpoint}?token=${this.configuredToken}${fromTo}`
-        return fetch(url)
-        .then((res: { json: () => any; }) => res.json())
-        .then((data1: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "recessionProbability", data1)
-            url = `${this.configuredUrl}/${endpoint}/${this.unemploymentEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(1000).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data2: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "unemploymentPercent", data2)
-            url = `${this.configuredUrl}/${endpoint}/${this.fedFundsRateEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(1000).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data3: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "fedFundsRate", data3)
-            url = `${this.configuredUrl}/${endpoint}/${this.cpiEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(1000).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data4: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerPriceIndex", data4)
-            url = `${this.configuredUrl}/${endpoint}/${this.ipiEndpoint}?token=${this.configuredToken}${fromTo}`
-            return delay(1000).then(() => fetch(url))
-        })
-        .then((res: { json: () => any; }) => res.json())
-        .then((data5:any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "industrialProductionIndex", data5)
-            return Object.values(aggregatedObject)
-        })
-    }
+    // public getMonthlyEconomicData(init:boolean = false){
+    //     const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
+    //     let fromTo = ""
+    //     if (init){
+    //         fromTo += `&from=2017-01-01&to=${todayString}`
+    //     }
+    //     const endpoint = "time-series/economic"
+    //     let aggregatedObject:any = {}
+    //     let url = `${this.configuredUrl}/${endpoint}/${this.recessionEndpoint}?token=${this.configuredToken}${fromTo}`
+    //     return fetch(url)
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data1: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "recessionProbability", data1)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.unemploymentEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(1000).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data2: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "unemploymentPercent", data2)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.fedFundsRateEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(1000).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data3: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "fedFundsRate", data3)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.cpiEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(1000).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data4: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerPriceIndex", data4)
+    //         url = `${this.configuredUrl}/${endpoint}/${this.ipiEndpoint}?token=${this.configuredToken}${fromTo}`
+    //         return delay(1000).then(() => fetch(url))
+    //     })
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data5:any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "industrialProductionIndex", data5)
+    //         return Object.values(aggregatedObject)
+    //     })
+    // }
     
-    public getQuarterlyEconomicData(init: boolean = false){
-        const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
-        let fromTo = ""
-        if (init){
-            fromTo += `&from=2015-01-01&to=${todayString}`
-        }
-        let aggregatedObject:any = {}
-        const url = `${this.configuredUrl}/time-series/economic/${this.realgdpEndpoint}?token=${this.configuredToken}${fromTo}`
-        return fetch(url)
-        .then((res: { json: () => any; }) => res.json())
-        .then((data: any) => {
-            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "realGDP", data)
-            return Object.values(aggregatedObject)
-        })
-    }
+    // public getQuarterlyEconomicData(init: boolean = false){
+    //     const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
+    //     let fromTo = ""
+    //     if (init){
+    //         fromTo += `&from=2015-01-01&to=${todayString}`
+    //     }
+    //     let aggregatedObject:any = {}
+    //     const url = `${this.configuredUrl}/time-series/economic/${this.realgdpEndpoint}?token=${this.configuredToken}${fromTo}`
+    //     return fetch(url)
+    //     .then((res: { json: () => any; }) => res.json())
+    //     .then((data: any) => {
+    //         aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "realGDP", data)
+    //         return Object.values(aggregatedObject)
+    //     })
+    // }
 
     // public getMarketNews(limit:number){
     //     const url = `${this.configuredUrl}/time-series/${this.newsEndpoint}?limit=${limit}&token=${this.configuredToken}`
@@ -581,6 +585,7 @@ export default class IexDataService {
     //     })
     // }
 
+    //used for gainers/losers/mostactive lists
     public getListType(endpoint:string) {
         const url = `${this.configuredUrl}/stock/market/list/${endpoint}?token=${this.configuredToken}`
         return fetch(url)
