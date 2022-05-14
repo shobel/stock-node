@@ -557,14 +557,14 @@ export default class FMPService {
                     entry.volume = 0
                 }
                 const chartEntry:any = {
-                    date: entry.date.split(" ")[0],
-                    label: Utilities.convertUnixTimestampToTimeString12(entry.date),
-                    minute: Utilities.convertUnixTimestampToTimeString24(entry.date),
+                    date: entry.date.includes(" ") ? entry.date.split(" ")[0] : "",
+                    label: entry.date.includes(" ") ? Utilities.convert24hTo12H(entry.date.split(" ")[1]) : "",
+                    minute: entry.date.includes(" ") ? Utilities.convert24hTo12H(entry.date.split(" ")[1]) : "",
                     open: entry.open,
                     close: entry.close,
                     high: entry.high,
                     low: entry.low,
-                    volume: entry.volume - volumeSum,
+                    volume: entry.volume//entry.volume - volumeSum,
                 }
                 volumeSum += chartEntry.volume
                 chartEntries.push(chartEntry)

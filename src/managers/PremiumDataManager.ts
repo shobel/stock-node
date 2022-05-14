@@ -203,13 +203,17 @@ export default class PremiumDataManager {
                 case PremiumDataManager.ANALYST_RECOMMENDATIONS:
                     for (let symbol of symbols){
                         let snap = StockDataManager.stockDao.getStockDocumentSnapshotForSymbol(symbol)
-                        combinedData[symbol] = snap.get(StockDataManager.stockDao.latestRecommendations)
+                        if (snap) {
+                            combinedData[symbol] = snap.get(StockDataManager.stockDao.latestRecommendations)
+                        }
                     }
                     return combinedData
                 case PremiumDataManager.ANALYST_PRICE_TARGET_UPSIDE:
                     for (let symbol of symbols){
                         let snap = StockDataManager.stockDao.getStockDocumentSnapshotForSymbol(symbol)
-                        combinedData[symbol] = snap.get(StockDataManager.stockDao.latestPriceTarget)
+                        if (snap) {
+                            combinedData[symbol] = snap.get(StockDataManager.stockDao.latestPriceTarget)
+                        }
                     }
                     return combinedData    
             }

@@ -231,10 +231,10 @@ export default class IexDataService {
         } 
         IexDataService.timeOfLastFetch = Date.now()
         return fetch(url)
-            .then((res: { json: () => any; }) => res.json())
-            .then((data: any) => {
-                return data
-            })
+        .then((res: { json: () => any; }) => res.json())
+        .then((data: any) => {
+            return data
+        })
     }
 
     // public getCompanyLogoPeersForSymbols(symbols:string[]){
