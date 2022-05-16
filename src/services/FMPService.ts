@@ -569,7 +569,8 @@ export default class FMPService {
                 volumeSum += chartEntry.volume
                 chartEntries.push(chartEntry)
             }
-            return chartEntries
+            let todayString = Utilities.convertUnixTimestampToDateString(Date.now())
+            return chartEntries.filter(e => e.date == todayString)
         })
     }
 
