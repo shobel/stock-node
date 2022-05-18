@@ -59,7 +59,7 @@ export default class ScheduledUpdateService {
         this.min30Updater = new cron.CronJob('0 */30 * * * *', this.scheduled30MinUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
 
         //runs at 6:30am PST every day (0 30 6 * * *)
-        this.morningUpdater = new cron.CronJob('0 35 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
+        this.morningUpdater = new cron.CronJob('0 31 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
 
         //runs at 1:05pm PST every trading day (0 5 13 * * *)
         this.marketCloseUpdater = new cron.CronJob('0 5 13 * * *', this.scheduledAfternoonUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined)
@@ -218,7 +218,7 @@ export default class ScheduledUpdateService {
             QuoteService.fetchLatestQuotesUntilMarketCloses(false)
         }  
 
-        let delay = 1000*60*30 //30min
+        let delay = 1000*60*10 //10min
         if (!smu.isMarketOpen) {
             setTimeout(async function() {
                 smu.isMarketOpen = await FMPService.getIsMarketOpen()

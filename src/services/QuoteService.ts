@@ -5,7 +5,7 @@ import Utilities from "../utils/Utilities";
 
 export default class QuoteService {
 
-    private static updateInterval:number = 120000 //1 min
+    private static updateInterval:number = 120000 //2 min
     private static simplifiedChartInterval:number = 600000 //every 10min
     public static quoteCache:{ [key: string]: any }  = {} // { symbol:string -> { latestQuote:FMPQuote, simplifiedChart: number[]} }
     public static extendedQuoteCache:any = {} //{symbol:string -> { price:number, priceTime:number, updated:number }

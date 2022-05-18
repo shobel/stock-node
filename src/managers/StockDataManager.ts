@@ -154,7 +154,9 @@ export default class StockDataManager {
             return Promise.resolve(cacheData)           
         } else {
             let tipranksData = await StockDataManager.getTipranksDataForSymbol(symbol)
-            combinedData["tipranksAnalystsAll"] = tipranksData.experts
+            if (tipranksData) {
+                combinedData["tipranksAnalystsAll"] = tipranksData.experts;
+            }
             let ptot = tipranksData?.priceTargetsOverTime
             if (ptot && ptot.length && ptot[0].date && ptot[0].date.includes("/")) {
                 for (let p of ptot){
@@ -516,7 +518,7 @@ export default class StockDataManager {
     //this endpoint was down for a while but now back up (3/7/22), might not be available in the future 
     public static getTipranksDataForSymbol(symbol:string) {
         let data = StockDataManager.stockDao.getTipranksDataForSymbol(symbol)
-        if (!data || !data.hasOwnProperty("data") || Object.keys(data.data).length <= 1 || (Date.now() - data.updated > Utilities.oneWeekMs)) {
+        if (!data || !data.hasOwnProperty("data") || !data["data"] || Object.keys(data.data).length <= 1 || (Date.now() - data.updated > Utilities.oneWeekMs)) {
             //data was missing or more than 1 week old
             return TipranksService.fetchTipranksApiDataForStock(symbol).then(tipranksData => {
                 StockDataManager.stockDao.setTipranksDataForSymbol(symbol, tipranksData).then(res => res).catch(err => err)

@@ -3,7 +3,6 @@ import MarketDao from "../dao/MarketDao";
 import StockDao from "../dao/StockDao";
 const puppeteer = require('puppeteer');
 import * as cron from "cron";
-import AppDao from "../dao/AppDao";
 
 const fetch = require('node-fetch');
 const fetchRetry = require('fetch-retry')(fetch);
@@ -35,6 +34,7 @@ export default class TipranksService {
     //they dont have success rates and returns on individual stocks
     private static expertTypes = ["analyst", "blogger"]
 
+    private static tipranksFetchCounter:number = 0
     private static experts: any = {}
     private static symbolMap: any = {}
 
@@ -163,12 +163,12 @@ export default class TipranksService {
             return
         }
 
-        let startIndex = await AppDao.getAppDaoInstance().getTipranksFetchCounter()
+        let startIndex = this.tipranksFetchCounter
         if (startIndex >= (topExperts.length - 1)) {
             startIndex = 0
         }
         let endIndex = startIndex + 20
-        await AppDao.getAppDaoInstance().setTipranksFetchCounter(startIndex + 21)
+        this.tipranksFetchCounter = startIndex + 21
         let isEnd:boolean = false
         if (endIndex >= (topExperts.length - 1)) {
             endIndex = (topExperts.length - 1)
