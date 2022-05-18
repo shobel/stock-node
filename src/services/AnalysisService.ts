@@ -823,7 +823,7 @@ export default class AnalysisService {
     }
 
     private static computeScoreFromPriceTarget(currentPrice:number, priceTargetObj:any){
-        //=(UPSIDE*100) + (log(NUMANALYSTS, 2)*20) + ((LOWSIDE*100)/2)
+        //=(UPSIDE*100) + (log(NUMANALYSTS, 2)*20) + ((LOWSIDE*100)/3)
         const analystScore = Math.log2(priceTargetObj.numberOfAnalysts) * 20
 
         let upside = ((priceTargetObj.priceTargetAverage - currentPrice) / currentPrice) * 100.0
@@ -831,7 +831,7 @@ export default class AnalysisService {
             upside = 100
         }
         
-        let lowUpside = (((currentPrice - priceTargetObj.priceTargetLow) / currentPrice) * 100.0) / 2
+        let lowUpside = (((priceTargetObj.priceTargetLow - currentPrice) / currentPrice) * 100.0) / 3
         if (lowUpside > 50) {
             lowUpside = 50
         }
@@ -839,7 +839,7 @@ export default class AnalysisService {
         if (priceTargetObj.numberOfAnalysts <= 1){
             lowUpside = 0
         } 
-        let score = analystScore + upside * lowUpside
+        let score = analystScore + upside + lowUpside
         return score
     }
 
