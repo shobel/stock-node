@@ -10,6 +10,7 @@ import SimpleQuote from "../models/SimpleQuote";
 import ScheduledUpdateService from "./ScheduledUpdateService";
 import StockDataService from "./StockDataService";
 import delay = require('delay');
+import StockMarketUtility from "../utils/StockMarketUtility";
 const fetch = require('node-fetch');
 const fetchRetry = require('fetch-retry')(fetch);
 
@@ -546,9 +547,9 @@ export default class FMPService {
         // const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
         const url = `${FMPService.baseUrlv3}historical-chart/1min/${symbol}?apikey=${FMPService.apikey}`
         return FMPService.fetchDataFromUrl(url).then(chart => {
-            let filteredResult = chart.filter(r => r.high && r.low && r.open && r.close)
+            let sliced = chart.slice(0, 391).reverse()
+            let filteredResult = sliced.filter(r => r.high && r.low && r.open && r.close)
             //fmp gives most recent price first AND sometimes includes prices from the previous day at the end (WTF?!)
-            filteredResult = filteredResult.slice(0, 391).reverse()
             const chartEntries:any[] = []
             let volumeSum = 0
             for (let i = 0; i < filteredResult.length; i++) {
@@ -570,7 +571,11 @@ export default class FMPService {
                 chartEntries.push(chartEntry)
             }
             let todayString = Utilities.convertUnixTimestampToDateString(Date.now())
-            return chartEntries.filter(e => e.date == todayString)
+            if (StockMarketUtility.getStockMarketUtility().isMarketOpen) {
+                return chartEntries.filter(e => e.date == todayString)
+            } else {
+                return chartEntries
+            }
         })
     }
 
