@@ -269,14 +269,29 @@ export default class AnalysisService {
             if (earningsArray){
                 earningsArray = earningsArray.reverse()
             }
-            if (earningsArray && earningsArray.length > 0 && earningsArray[earningsArray.length - 1].id > todayString) {
-                const consensusEPS = earningsArray[earningsArray.length - 1].consensusEPS
-                const yearAgo = earningsArray[earningsArray.length - 1].yearAgo
-                if (consensusEPS && yearAgo){
-                    const epsGrowth = (consensusEPS - yearAgo) / yearAgo
-                    if (Utilities.isValidNumber(epsGrowth)){
-                        marketMetrics.epsNextQGrowth.push(epsGrowth)
-                        symbolMetrics[symbol].epsNextQGrowth = epsGrowth
+            if (earningsArray && earningsArray.length > 0) {
+                if (earningsArray[earningsArray.length - 1].id > todayString) {
+                    //this is a future prediction
+                    const consensusEPS = earningsArray[earningsArray.length - 1].consensusEPS
+                    const yearAgo = earningsArray[earningsArray.length - 1].yearAgo
+                    if (consensusEPS && yearAgo){
+                        const epsGrowth = (consensusEPS - yearAgo) / yearAgo
+                        if (Utilities.isValidNumber(epsGrowth)){
+                            marketMetrics.epsNextQGrowth.push(epsGrowth)
+                            symbolMetrics[symbol].epsNextQGrowth = epsGrowth
+                        }
+                    }   
+                } else {
+                    //this is not a future prediction and we can just use actualEPS
+                    //i believe that this case happens when the next quarter estimates just arent available yet
+                    const actualEPS = earningsArray[earningsArray.length - 1].actualEPS
+                    const yearAgo = earningsArray[earningsArray.length - 1].yearAgo
+                    if (actualEPS && yearAgo) {
+                        const epsGrowth = (actualEPS - yearAgo) / yearAgo
+                        if (Utilities.isValidNumber(epsGrowth)) {
+                            marketMetrics.epsNextQGrowth.push(epsGrowth)
+                            symbolMetrics[symbol].epsNextQGrowth = epsGrowth
+                        }
                     }
                 }
             }
