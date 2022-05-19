@@ -547,9 +547,18 @@ export default class FMPService {
         // const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
         const url = `${FMPService.baseUrlv3}historical-chart/1min/${symbol}?apikey=${FMPService.apikey}`
         return FMPService.fetchDataFromUrl(url).then(chart => {
-            let sliced = chart.slice(0, 391).reverse()
-            let filteredResult = sliced.filter(r => r.high && r.low && r.open && r.close)
+            let latestDate:string = ""
+            if (chart.length > 0) {
+                let entry = chart[0]
+                latestDate = entry.date.includes(" ") ? entry.date.split(" ")[0] : ""
+            } else {
+                return []
+            }
+
+            let filteredResult = chart.filter(r => r.high && r.low && r.open && r.close)
+            filteredResult = filteredResult.filter(e => e.date == latestDate)
             //fmp gives most recent price first AND sometimes includes prices from the previous day at the end (WTF?!)
+
             const chartEntries:any[] = []
             let volumeSum = 0
             for (let i = 0; i < filteredResult.length; i++) {
@@ -570,12 +579,7 @@ export default class FMPService {
                 volumeSum += chartEntry.volume
                 chartEntries.push(chartEntry)
             }
-            let todayString = Utilities.convertUnixTimestampToDateString(Date.now())
-            if (StockMarketUtility.getStockMarketUtility().isMarketOpen) {
-                return chartEntries.filter(e => e.date == todayString)
-            } else {
-                return chartEntries
-            }
+            return chartEntries
         })
     }
 
