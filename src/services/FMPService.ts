@@ -556,7 +556,10 @@ export default class FMPService {
             }
 
             let filteredResult = chart.filter(r => r.high && r.low && r.open && r.close)
-            filteredResult = filteredResult.filter(e => e.date == latestDate)
+            filteredResult = filteredResult.filter(e => {
+                let d = e.date.includes(" ") ? e.date.split(" ")[0] : ""
+                return d == latestDate
+            })
             //fmp gives most recent price first AND sometimes includes prices from the previous day at the end (WTF?!)
 
             const chartEntries:any[] = []
