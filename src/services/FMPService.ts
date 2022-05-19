@@ -554,8 +554,8 @@ export default class FMPService {
             } else {
                 return []
             }
-
-            let filteredResult = chart.filter(r => r.high && r.low && r.open && r.close)
+            let reversed = chart.reverse()
+            let filteredResult = reversed.filter(r => r.high && r.low && r.open && r.close)
             filteredResult = filteredResult.filter(e => {
                 let d = e.date.includes(" ") ? e.date.split(" ")[0] : ""
                 return d == latestDate
