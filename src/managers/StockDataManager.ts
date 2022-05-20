@@ -668,6 +668,23 @@ export default class StockDataManager {
             }
             return StockDataManager.getScoresForSymbols()
         }).then((scoreObjs:any[]) => {
+            if (areSettingsDefault && scoreObjs.length){
+                let returnObj:any[] = []
+                for (const so of scoreObjs){
+                    if (!symbols.length || symbols.includes(so.symbol)) {
+                        let o = {
+                            symbol: so.symbol,
+                            companyName: so.companyName,
+                            industry: so.industry,
+                            rank: so.scores.rank,
+                            industryRank: so.scores.industryRank,
+                            percentile: so.scores.percentile
+                        }
+                        returnObj.push(o)
+                    }
+                }
+                return returnObj
+            }
             if (settings && (settings.disabled.length || Object.keys(settings.weightings).length)) {
                 const overallScores:number[] = []
                 for (const scoreObj of scoreObjs) {
