@@ -15,6 +15,7 @@ import SimpleQuote from "../models/SimpleQuote";
 import Config from "../config/config";
 import TwitterApiService from "./TwitterApiService";
 import UserDao from "../dao/UserDao";
+import MarketDataManager from "../managers/MarketDataManager";
 
 export default class ScheduledUpdateService {
 
@@ -307,7 +308,8 @@ export default class ScheduledUpdateService {
                 this.initNewSymbols(allSymbols, symbolsWhosEarningsWereToday)
             }
             await TipranksService.fetchTopAnalysts().then(res => res).catch(err => err)
-            
+            await TipranksService.computeTopAnalystSymbolScores()
+            await MarketDataManager.updateTopAnalystPortfolio()
             //just doesn't work reliably, not worth it
             // await FidelityService.scrape()
         }).catch()

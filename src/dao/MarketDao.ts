@@ -15,6 +15,9 @@ export default class MarketDao extends BaseDao {
         public gainersField = "gainers"
         public losersField = "losers"
         public activeField = "mostactive"
+        public topAnalysts = "topAnalysts"
+
+    public topAnalystsPortfolioDoc = "topAnalystsPortfolio"
 
     public holidaysDoc:string = "holidays"
     public lastUpdatedTipranksAnalysts:string = "lastUpdatedTipranksAnalysts"
@@ -166,7 +169,9 @@ export default class MarketDao extends BaseDao {
 
     public getTop10Field(field:string){
         return this.db.collection(this.marketCollection).doc(this.top10Doc).get()
-        .then(result => result ? result[field] : result).catch()
+        .then(result => {
+            return result ? result.get(field) : result
+        }).catch()
     }
 
     public saveTop10Field(field:string, data:any){
@@ -217,6 +222,24 @@ export default class MarketDao extends BaseDao {
 
     public deleteTipranksTopSymbolsCollection() {
         return this.deleteAllDocumentsInCollection(this.tipranksTopSymbolsCollection)
+    }
+
+    public getTopAnalystsPortfolio(){
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).get()
+        .then(doc => doc.data()).catch(err => err)
+    }
+
+    public updateTopAnalystsPortfolioPositions(positions:any[]) {
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).set(
+            {currentPositions : positions}
+        ).then(res => res).catch(err => err)
+    }
+
+    public updateTopAnalystsPortfolioValue(newValue:number){
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).collection("portfolioValue")
+        .doc(Date.now().toString()).set(
+            {value : newValue}
+        ).then(res => res).catch(err => err)
     }
 
     // dead code, probably will never need

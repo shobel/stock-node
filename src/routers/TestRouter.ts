@@ -10,6 +10,7 @@ import FearGreedService from '../services/FearGreedService';
 import TipranksService from '../services/TipranksService';
 import PremiumDataManager from '../managers/PremiumDataManager';
 import TwitterApiService from '../services/TwitterApiService';
+import MarketDataManager from '../managers/MarketDataManager';
 
 const testRouter = Router()
 
@@ -222,4 +223,13 @@ testRouter.get('/removeotc', async (req: Request, res: Response) => {
     await StockDao.getStockDaoInstance().deleteEverythingForSymbols(symbolsToDelete)
     res.send("done")
 })
+testRouter.get('/compute-top-analysts-scores', async (req: Request, res: Response) => {
+    let scores = await TipranksService.computeTopAnalystSymbolScores()
+    res.send(scores)
+})
+testRouter.get('/update-top-analyst-portfolio', async (req: Request, res: Response) => {
+    await MarketDataManager.updateTopAnalystPortfolio()
+    res.send("done")
+})
+
 export default testRouter

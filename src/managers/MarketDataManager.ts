@@ -1,6 +1,7 @@
 import MarketDao from "../dao/MarketDao";
 import IexDataService from "../services/IexDataService";
 import FMPService from "../services/FMPService";
+import QuoteService from "../services/QuoteService";
 
 export default class MarketDataManager {
 
@@ -183,5 +184,69 @@ export default class MarketDataManager {
             combinedData["economy"] = economy
             return combinedData
         })
+    }
+
+    public static async updateTopAnalystPortfolio(){
+        let md = MarketDao.getMarketDaoInstance()
+        let top10 = await md.getTop10Field(md.topAnalysts)
+        let portfolio = await md.getTopAnalystsPortfolio()
+        if (portfolio && portfolio.currentPositions && portfolio.currentPositions.length) {
+            //if we have a portfolio, calculate and save the new value of it
+            let currentPositions = portfolio.currentPositions
+            let newPortValue = 0
+            for (let pos of currentPositions) {
+                let currentPrice = await QuoteService.getLatestQuotes([pos.symbol], false)
+                let currentPosValue = pos.numShares * currentPrice
+                newPortValue += currentPosValue
+            }
+            md.updateTopAnalystsPortfolioValue(newPortValue)
+
+            //adjust the portfolio poisitions
+            let top10symbols:string[] = top10.map(s => s.symbol)
+            let dollarsOfEach = newPortValue / top10symbols.length
+            let newPortfolio:any[] = []
+            for (let s of top10symbols) {
+                let quotes = await QuoteService.getLatestQuotes([s], false)
+                let latestPrice:number = 0
+                if (quotes.hasOwnProperty(s)){
+                    latestPrice = quotes[s].price
+                }
+                let position = {
+                    symbol: s,
+                    numShares: dollarsOfEach / latestPrice
+                }
+                newPortfolio.push(position)
+            }
+            md.updateTopAnalystsPortfolioPositions(newPortfolio)
+        } else {
+            //create a portfolio
+            let newPortfolio:any[] = []
+            for (let top of top10){
+                let quotes = await QuoteService.getLatestQuotes([top.symbol], false)             
+                let latestPrice:number = 0
+                if (quotes.hasOwnProperty(top.symbol)){
+                    latestPrice = quotes[top.symbol].price
+                }
+                let numShares = 1.0/latestPrice
+                let position = {
+                    symbol: top.symbol,
+                    numShares: numShares
+                }
+                newPortfolio.push(position)
+            }         
+            let newPortValue = 0
+            for (let pos of newPortfolio) {
+                let quotes = await QuoteService.getLatestQuotes([pos.symbol], false)
+                let latestPrice:number = 0
+                if (quotes.hasOwnProperty(pos.symbol)){
+                    latestPrice = quotes[pos.symbol].price
+                }
+                let currentPosValue = pos.numShares * latestPrice
+                newPortValue += currentPosValue
+            }
+            md.updateTopAnalystsPortfolioValue(newPortValue)
+            md.updateTopAnalystsPortfolioPositions(newPortfolio)
+        }
+
     }
 }

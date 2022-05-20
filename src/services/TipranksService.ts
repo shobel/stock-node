@@ -3,6 +3,8 @@ import MarketDao from "../dao/MarketDao";
 import StockDao from "../dao/StockDao";
 const puppeteer = require('puppeteer');
 import * as cron from "cron";
+import MarketDataManager from "../managers/MarketDataManager";
+import QuoteService from "./QuoteService";
 
 const fetch = require('node-fetch');
 const fetchRetry = require('fetch-retry')(fetch);
@@ -420,6 +422,99 @@ export default class TipranksService {
             stockRating: rating
         }
         return expertCopy
+    }
+
+    public static async computeTopAnalystSymbolScores(){
+        let topSymbols = await MarketDataManager.getTipranksSymbols(null)
+        let symbolsArr:string[] = topSymbols.map(s => s.symbol)
+        let quotes = await QuoteService.getLatestQuotes(symbolsArr, false)
+        let totalScores:any = []
+        for (let s of topSymbols) {
+            let latestPrice:number = 0
+            if (quotes.hasOwnProperty(s.symbol)){
+                latestPrice = quotes[s.symbol].price
+            }
+            let totalScore = TipranksService.computeTotalScore(s, latestPrice)
+            let scoreObj = {
+                symbol: s.symbol,
+                score: totalScore
+            }
+            totalScores.push(scoreObj)
+        }
+        totalScores = totalScores.sort((a, b) => (a.score < b.score) ? 1 : -1)
+        let top10 = totalScores.slice(0, 10)
+        MarketDao.getMarketDaoInstance().saveTop10Field(MarketDao.getMarketDaoInstance().topAnalysts, top10)
+        return totalScores
+    }
+
+    public static computeTotalScore(obj: any, latestPrice: number) {
+        let numAnalysts = obj.numAnalysts ?? 0
+        let avgUpside = 0
+        if (latestPrice && obj.avgPriceTarget){
+            avgUpside = ((obj.avgPriceTarget - latestPrice) / latestPrice) * 100.0
+        }
+        let avgRank = obj.avgAnalystRank ?? 0.0
+        let numRatings = (obj.numRatings ?? 0) / numAnalysts
+        let avgSuccessRate = obj.avgAnalystSuccessRate ?? 0.0 //decimal form
+        let freshness = TipranksService.computeFreshness(obj)
+        
+        let numAnalystsScore = TipranksService.computeNumAnalystsScore(numAnalysts)
+        let avgUpsideScore = TipranksService.computeUpsideScore(avgUpside)
+        let rankScore = TipranksService.computeRankScore(avgRank)
+        let numRatingsScore = TipranksService.computeNumRatingsScore(numRatings)
+        let avgSuccessScore = (avgSuccessRate*100.0)/20.0
+        let freshnessScore = TipranksService.computeFreshnessScore(freshness)
+        
+        let totalScore = numAnalystsScore + avgUpsideScore + rankScore + numRatingsScore + avgSuccessScore + freshnessScore
+        return totalScore
+    }
+    
+    private static computeNumAnalystsScore(numAnalysts:number) {
+        return numAnalysts*2.0
+    }
+    private static computeUpsideScore(upside:number) {
+        var s = upside/3.0
+        if (s > 15) {
+            s = 15
+        }
+        return s
+    }
+    private static computeRankScore(rank:number) {
+        var s = (1.0/rank)*15.0
+        if (s > 3) { 
+            s = 3 
+        }
+        return s
+    }
+    private static computeNumRatingsScore(numRatings:number) {
+        var s = numRatings / 6.0
+        if (s > 5.0) { s = 5.0 }
+        return s
+    }
+    private static computeFreshnessScore(freshness:number) {
+        var s = (1.0/freshness)*100.0
+        if (s > 8) {
+            s = 8
+        }
+        return s
+    }
+    private static computeFreshness(obj:any){
+        if (!obj || !obj.experts || !obj.experts.length) {
+            return 0
+        }
+        let totalDays = 0
+        for (let rating of obj.experts) {
+            let date = rating.stockRating.date
+            if (date){
+                let today = (new Date()).getTime()
+                let ratingDate = (new Date(date)).getTime()
+                if (ratingDate) {
+                    let diff = Utilities.countDaysBetweenDates(today, ratingDate)
+                    totalDays += diff
+                }
+            }
+        }
+        return totalDays / obj.experts.length
     }
 
     //scraper
