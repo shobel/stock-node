@@ -253,6 +253,23 @@ export default class IexDataService {
     //     }
     // }
 
+    
+    public getCompanyForSymbols(symbols:string[]){
+        if (symbols.length > this.maxAllowedSymbols) {
+            const url = `${this.configuredUrl}/stock/market/batch?types=company&token=${this.configuredToken}`
+            return this.fetchDataForMoreThanMaxAllowedSymbols(symbols, url).then(data => {
+                return data
+            }).catch()
+        } else {
+            const url = `${this.configuredUrl}/stock/market/batch?types=company&token=${this.configuredToken}&symbols=${symbols}`
+            return fetch(url)
+                .then((res: { json: () => any; }) => res.json())
+                .then((data: any) => {
+                    return data
+                }).catch()
+        }
+    }
+
     // Returns object where the keys are the symbol and values are the latest quote
     // With test data: seems to take about a second per 100 symbols -> 8 seconds for all stocks
     // public getLatestQuoteForSymbols(symbols: string[]) {

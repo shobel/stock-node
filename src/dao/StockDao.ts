@@ -248,6 +248,27 @@ export default class StockDao extends BaseDao {
         // })
     }
 
+    public async deleteEverythingForSymbols(symbolsToDelete:string[]) {
+        let stockRefsToDelete:any[] = []
+        let count = 0
+        for (let s of symbolsToDelete){
+            let doc = await this.db.collection(this.stockCollection).doc(s).get()
+            stockRefsToDelete.push(doc.ref)
+            for (let col of this.allCollectionsForStock){
+                let colRef = await this.db.collection(this.stockCollection).doc(s).collection(col).get()
+                for (let doc of colRef.docs){
+                    stockRefsToDelete.push(doc.ref)
+                }
+            }
+            count+=1
+            console.log(`prepared to delete ${s} (${count}/${symbolsToDelete.length})`)
+        }
+        if (stockRefsToDelete.length){
+            console.log(`deleting ${stockRefsToDelete.length} docs for these symbols`)
+            await this.batchDelete(stockRefsToDelete)
+        }
+    }
+
     public async deleteEmptySymbolDocs(){
         let stockRefsToDelete:any[] = []
         let symbolsToDelete:any[] = []

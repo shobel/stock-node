@@ -111,9 +111,7 @@ testRouter.get('/agg', async (req: Request, res: Response) => {
     res.send(arr)
 })
 testRouter.get('/tipranks1', async (req: Request, res: Response) => {
-    for (let i = 0; i < 12; i++){
-        await TipranksService.fetchTopAnalysts()
-    }
+    await TipranksService.fetchTopAnalysts()
 })
 testRouter.get('/manyquotes', async (req: Request, res: Response) => {
     let r = await FMPService.screener({operation: ">", value: "50000000000"}, null, null, null, null, null, null)
@@ -204,6 +202,24 @@ testRouter.get('/compare-lists', async (req: Request, res: Response) => {
             stocksFMPHasThatIexDoesnt.push((f as any).symbol)
         }
     }
-    res.send({})
+    res.send({
+        FMPmissing: stocksIexHasThatFMPDoesnt,
+        IEXmissing: stocksFMPHasThatIexDoesnt
+    })
+})
+testRouter.get('/removeotc', async (req: Request, res: Response) => {
+    let fmp = await FMPService.getQuoteForAllSymbols()
+    let symbols = fmp.map(f => f.symbol)
+    let companyInfos = await IexDataService.getIexDataServiceInstance().getCompanyForSymbols(symbols)
+    let symbolsToDelete:string[] = []
+    for (let c of Object.values(companyInfos)){
+        let ci = (c as any).company
+        let ex = ci.exchange
+        if (ex && (ex.toLowerCase().includes("otc") || ex.toLowerCase().includes("cboe"))) {
+            symbolsToDelete.push(ci.symbol)
+        }
+    }
+    await StockDao.getStockDaoInstance().deleteEverythingForSymbols(symbolsToDelete)
+    res.send("done")
 })
 export default testRouter
