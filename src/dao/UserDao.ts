@@ -153,6 +153,12 @@ export default class UserDao extends BaseDao {
         .doc(Date.now().toString()).set({
             message: issue,
             email: email
+        }).then(()=> {
+            return this.db.collection(this.issuesCollection).doc(Date.now().toString()).set({
+                userid: userid,
+                message: issue,
+                email: email
+            })
         })
     }
 
