@@ -195,8 +195,12 @@ export default class MarketDataManager {
             let currentPositions = portfolio.currentPositions
             let newPortValue = 0
             for (let pos of currentPositions) {
-                let currentPrice = await QuoteService.getLatestQuotes([pos.symbol], false)
-                let currentPosValue = pos.numShares * currentPrice
+                let quotes = await QuoteService.getLatestQuotes([pos.symbol], false)
+                let latestPrice:number = 0
+                if (quotes.hasOwnProperty(pos.symbol)){
+                    latestPrice = quotes[pos.symbol].price
+                }
+                let currentPosValue = pos.numShares * latestPrice
                 newPortValue += currentPosValue
             }
             md.updateTopAnalystsPortfolioValue(newPortValue)
