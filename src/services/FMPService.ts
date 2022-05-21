@@ -806,10 +806,12 @@ export default class FMPService {
             let days = 0
             if (filtered.length == 1){
                 days = 1
-            } else if (filtered.length > 1) {
-                days = Utilities.countDaysBetweenDateStrings(filtered[0].transactionDate, filtered[filtered.length -1].transactionDate)
             }
             for (let item of filtered) {
+                let d = Utilities.countDaysBetweenDateStrings(filtered[0].transactionDate, item.transactionDate)
+                if (d < 180){
+                    break
+                }
                 let total = item.securitiesTransacted * item.price
                 if (item.transactionType == sellType) {
                     total = -total
