@@ -106,41 +106,57 @@ export default class ChartService {
         }
     }
 
-    public getIntradayChartForSymbol(symbol: string) {
+    public async getIntradayChartForSymbol(symbol: string) {
         if (this.isIntradayCacheItemValid(symbol)) {
             const intradayChartCache = this.chartCache[symbol][this.intradayCacheKey]
             return Promise.resolve(intradayChartCache.intradayPrices)
         }
 
-        return IexDataService.getIexDataServiceInstance().getIntradayPricesForSymbol(symbol, null).then(async result => {
-            let countWithoutData:number = 0
-            for (let i = 0; i < result.length; i++){
-                let r = result[i]
-                if (!r.close && !r.high && !r.open && !r.low){
-                    countWithoutData += 1
-                }
+        let result = await FMPService.getIntradayChartForSymbol(symbol) 
+        let processed:any[] = []
+        let latestNonNullValues: any = {}
+        for (let i = 0; i < result.length; i++) {
+            let r = result[i]
+            if (!r.close && !r.high && !r.open && !r.low) {
+                processed.push(latestNonNullValues)
+            } else {
+                latestNonNullValues = r
+                processed.push(r)
             }
-            if ((countWithoutData / result.length) > 0.5) {
-                //if more than 50% of the data is missing, fetch non-iex
-                let intraday = await FMPService.getIntradayChartForSymbol(symbol) 
-                result = intraday
-            }
+        }
 
-            let processed:any[] = []
-            let latestNonNullValues:any = {}
-            for (let i = 0; i < result.length; i++){
-                let r = result[i]
-                if (!r.close && !r.high && !r.open && !r.low){
-                    processed.push(latestNonNullValues)
-                } else {
-                    latestNonNullValues = r
-                    processed.push(r)
-                }
-            }
+        this.setIntradayCacheItem(symbol, processed)
+        return processed
 
-            this.setIntradayCacheItem(symbol, processed)
-            return processed
-        })
+        // return IexDataService.getIexDataServiceInstance().getIntradayPricesForSymbol(symbol, null).then(async result => {
+        //     let countWithoutData:number = 0
+        //     for (let i = 0; i < result.length; i++){
+        //         let r = result[i]
+        //         if (!r.close && !r.high && !r.open && !r.low){
+        //             countWithoutData += 1
+        //         }
+        //     }
+        //     if ((countWithoutData / result.length) > 0.5) {
+        //         //if more than 50% of the data is missing, fetch non-iex
+        //         let intraday = await FMPService.getIntradayChartForSymbol(symbol) 
+        //         result = intraday
+        //     }
+
+        //     let processed:any[] = []
+        //     let latestNonNullValues:any = {}
+        //     for (let i = 0; i < result.length; i++){
+        //         let r = result[i]
+        //         if (!r.close && !r.high && !r.open && !r.low){
+        //             processed.push(latestNonNullValues)
+        //         } else {
+        //             latestNonNullValues = r
+        //             processed.push(r)
+        //         }
+        //     }
+
+        //     this.setIntradayCacheItem(symbol, processed)
+        //     return processed
+        // })
     }
 
 }
