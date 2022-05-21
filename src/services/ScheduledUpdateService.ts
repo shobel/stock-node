@@ -181,23 +181,26 @@ export default class ScheduledUpdateService {
             if (marketWasOpenToday && StockMarketUtility.getStockMarketUtility().isMarketOpen){
                 console.log(`${Utilities.convertUnixTimestampToTimeString12(Date.now())} saving top10s`)
                 const top10Endpoints = [
-                    this.iexDataService.gainersEndpoint,
-                    this.iexDataService.losersEndpoint,
-                    this.iexDataService.mostActiveEndpoint
+                    FMPService.gainersEndpoint,
+                    FMPService.losersEndpoint,
+                    FMPService.activeEndpoint
+                    // this.iexDataService.gainersEndpoint,
+                    // this.iexDataService.losersEndpoint,
+                    // this.iexDataService.mostActiveEndpoint
                 ]
                 for (const endpoint of top10Endpoints){
-                    this.iexDataService.getListType(endpoint).then(result => {
+                    FMPService.getListType(endpoint).then(result => {
                         if (result){
                             //result is an array of quotes
                             const filteredQuotes = result.map(quote => {
                                 return {
                                     symbol: quote.symbol,
-                                    companyName: quote.companyName,
-                                    latestPrice: quote.latestPrice || 0,
+                                    companyName: quote.name, //IEX: quote.companyName,
+                                    latestPrice: quote.price || 0, //IEX: quote.latestPrice || 0,
                                     latestVolume: quote.latestVolume || 0,
                                     latestUpdate: quote.latestUpdate || 0,
                                     change: quote.change || 0,
-                                    changePercent: quote.changePercent * 100 || 0
+                                    changePercent: quote.changesPercent * 100.0 || 0.0, //IEX: quote.changePercent * 100 || 0
                                 }
                             })
                             this.marketDao.saveTop10Field(endpoint, filteredQuotes).then().catch()

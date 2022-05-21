@@ -30,6 +30,9 @@ export default class FMPService {
     public static balanceSheetEndpoint = "balance-sheet-statement"
     public static newsEndpoint = "stock_news"
     public static estimatesEndpoint = "analyst-estimates"
+    public static gainersEndpoint = "stock_market/gainers"
+    public static losersEndpoint = "stock_market/losers"
+    public static activeEndpoint = "stock_market/actives"
 
     public static cooldown:number = 300 //the advertised rate limit is 300/min (5/sec) (once every 200 ms) so we go a little higher for some wiggle room
     public static lastFetchTime:number = 0
@@ -513,6 +516,13 @@ export default class FMPService {
             }
             return null
         })
+    }
+
+    public static getListType(endpoint:string){
+        const url = `${this.baseUrlv3}/${endpoint}?apikey=${FMPService.apikey}`
+        return fetch(url)
+        .then((res: { json: () => any; }) => res.json())
+        .then((data: any) => data).catch()
     }
 
     public static getMarketNews(numItems:number){
