@@ -80,7 +80,7 @@ export default class TwitterApiService {
         for (let account of twitterAccountsSet) {
             let since = (new Date(Date.now() - TwitterApiService.dayInMs)).toISOString()
             let returnData = await TwitterApiService.updateTwitterAccountData(account as string, since, 10)
-            if (!returnData){
+            if (!returnData || !returnData.cashtags){
                 continue
             }
             let docsnap:any = await TwitterDao.twitterDao.getDocSnapshot(account as string)
