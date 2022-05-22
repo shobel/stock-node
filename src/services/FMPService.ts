@@ -660,6 +660,17 @@ export default class FMPService {
         return FMPService.fetchDataFromUrl(url)
     }
 
+    public static getTrendingBySocialSentiment() {
+        const url = `${FMPService.baseUrlv4}social-sentiment/trending?apikey=${FMPService.apikey}`
+        return FMPService.fetchDataFromUrl(url)  
+    }
+
+    //options are twitter or stocktwits
+    public static getSocialSentimentChanges(source:string){
+        const url = `${FMPService.baseUrlv4}social-sentiments/change?type=bullish&source=${source}&apikey=${FMPService.apikey}`
+        return FMPService.fetchDataFromUrl(url)  
+    }
+
     public static async getAdvancedStatsForSymbol(symbol:string, period:string, limit:number){
         const advancedStats = await FMPService.getRatiosForSymbol(symbol, period, limit)
         const keyMetrics = await FMPService.getKeyMetricsForSymbol(symbol, period, limit)

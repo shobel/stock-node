@@ -57,6 +57,11 @@ marketRouter.get('/top10', async (req: Request, res: Response) => {
         res.send(data)
     }).catch()
 })
+marketRouter.get('/socials', async (req: Request, res: Response) => {
+    MarketDataManager.getAllMarketSocialSentiments().then(data => {
+        res.send(data)
+    }).catch()
+})
 
 /* returns array of stocktwits trending symbols */
 // tested

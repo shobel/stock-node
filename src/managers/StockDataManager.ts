@@ -363,6 +363,7 @@ export default class StockDataManager {
             return cacheItem
         } else {
             let ss:any = await FMPService.getSocialSentiment(symbol)
+            ss = ss.reverse()
             ss.lastUpdated = Date.now()
             StockDataManager.socialSentimentCache[symbol] = ss
             return ss

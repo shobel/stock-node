@@ -11,6 +11,7 @@ import TipranksService from '../services/TipranksService';
 import PremiumDataManager from '../managers/PremiumDataManager';
 import TwitterApiService from '../services/TwitterApiService';
 import MarketDataManager from '../managers/MarketDataManager';
+import MarketDao from '../dao/MarketDao';
 
 const testRouter = Router()
 
@@ -221,7 +222,7 @@ testRouter.get('/removeotc', async (req: Request, res: Response) => {
         }
     }
     await StockDao.getStockDaoInstance().deleteEverythingForSymbols(symbolsToDelete)
-    res.send("done")
+    res.send()
 })
 testRouter.get('/compute-top-analysts-scores', async (req: Request, res: Response) => {
     let scores = await TipranksService.computeTopAnalystSymbolScores()
@@ -229,7 +230,17 @@ testRouter.get('/compute-top-analysts-scores', async (req: Request, res: Respons
 })
 testRouter.get('/update-top-analyst-portfolio', async (req: Request, res: Response) => {
     await MarketDataManager.updateTopAnalystPortfolio()
-    res.send("done")
+    res.send()
 })
-
+testRouter.get('/market-socials', async (req: Request, res: Response) => {
+    let trendingSocials = await FMPService.getTrendingBySocialSentiment()
+    let socialChangeTwitter = await FMPService.getSocialSentimentChanges("twitter")
+    let socialChangeStocktwits = await FMPService.getSocialSentimentChanges("stocktwits")
+    MarketDao.getMarketDaoInstance().saveSocialSentimentData({
+        trending: trendingSocials,
+        twitterChange: socialChangeTwitter, 
+        stocktwitsChange: socialChangeStocktwits
+    })    
+    res.send()
+})
 export default testRouter

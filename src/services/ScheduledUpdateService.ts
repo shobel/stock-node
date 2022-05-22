@@ -177,7 +177,7 @@ export default class ScheduledUpdateService {
         FMPService.getMarketNews(30).then((newsArray:any) => {
             ScheduledUpdateService.marketNews = newsArray
         })
-        this.marketDao.getTodayWasATradingDay().then(marketWasOpenToday => {
+        this.marketDao.getTodayWasATradingDay().then(async marketWasOpenToday => {
             if (marketWasOpenToday && StockMarketUtility.getStockMarketUtility().isMarketOpen){
                 console.log(`${Utilities.convertUnixTimestampToTimeString12(Date.now())} saving top10s`)
                 const top10Endpoints = [
@@ -207,6 +207,14 @@ export default class ScheduledUpdateService {
                         }
                     }).catch()
                 }
+                let trendingSocials = await FMPService.getTrendingBySocialSentiment()
+                let socialChangeTwitter = await FMPService.getSocialSentimentChanges("twitter")
+                let socialChangeStocktwits = await FMPService.getSocialSentimentChanges("stocktwits")
+                this.marketDao.saveSocialSentimentData({
+                    trending: trendingSocials,
+                    twitterChange: socialChangeTwitter, 
+                    stocktwitsChange: socialChangeStocktwits
+                })
             }
         }).catch()
     }

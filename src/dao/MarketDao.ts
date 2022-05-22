@@ -16,6 +16,7 @@ export default class MarketDao extends BaseDao {
         public losersField = "losers"
         public activeField = "mostactive"
         public topAnalysts = "topAnalysts"
+    public socialSentimentDoc:string = "socialSentiment"
 
     public topAnalystsPortfolioDoc = "topAnalystsPortfolio"
 
@@ -178,6 +179,16 @@ export default class MarketDao extends BaseDao {
         return this.db.collection(this.marketCollection).doc(this.top10Doc).set({
             [field]: data
         }, { merge: true }).then(result => result).catch()
+    }
+
+    public getSocialSentimentData(){
+        return this.db.collection(this.marketCollection).doc(this.socialSentimentDoc).get()
+        .then(result => result ? result.data() : null).catch(err => err)
+    }
+
+    public saveSocialSentimentData(data){
+        return this.db.collection(this.marketCollection).doc(this.socialSentimentDoc).set(data)
+        .then(result => result).catch(err => err)
     }
 
     public getStocktwitsTrending(){

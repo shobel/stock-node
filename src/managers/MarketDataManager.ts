@@ -2,6 +2,7 @@ import MarketDao from "../dao/MarketDao";
 import IexDataService from "../services/IexDataService";
 import FMPService from "../services/FMPService";
 import QuoteService from "../services/QuoteService";
+import StockDao from "../dao/StockDao";
 
 export default class MarketDataManager {
 
@@ -85,7 +86,22 @@ export default class MarketDataManager {
     }
 
     public static getAllTop10(){
-        return MarketDataManager.marketDao.getAllTop10().then(result => result).catch()
+        return MarketDataManager.marketDao.getAllTop10().then(result => result).catch(err => err)
+    }
+
+    public static getAllMarketSocialSentiments(){
+        let symbols = StockDao.getStockDaoInstance().getAllSymbols()
+        return MarketDataManager.marketDao.getSocialSentimentData().then(result => {
+            for (let key of Object.keys(result)){
+                if (result.hasOwnProperty(key) && result[key]){
+                    result[key].filter(i => symbols.includes(i.symbol))
+                    if (result[key].length > 10){
+                        result[key] = result[key].slice(0, 10)
+                    }
+                }
+            }
+            return result
+        }).catch(err => err)
     }
 
     public static getMarketNews(){
