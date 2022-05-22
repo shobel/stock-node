@@ -94,7 +94,7 @@ export default class MarketDataManager {
         return MarketDataManager.marketDao.getSocialSentimentData().then(result => {
             for (let key of Object.keys(result)){
                 if (result.hasOwnProperty(key) && result[key]){
-                    result[key].filter(i => symbols.includes(i.symbol))
+                    result[key] = result[key].filter(i => symbols.includes(i.symbol))
                     if (result[key].length > 10){
                         result[key] = result[key].slice(0, 10)
                     }
