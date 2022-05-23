@@ -200,7 +200,7 @@ export default class ScheduledUpdateService {
                                     latestVolume: quote.latestVolume || 0,
                                     latestUpdate: quote.latestUpdate || 0,
                                     change: quote.change || 0,
-                                    changePercent: quote.changesPercentage * 100.0 || 0.0, //IEX: quote.changePercent * 100 || 0
+                                    changePercent: quote.changesPercentage || 0.0, //IEX: quote.changePercent * 100 || 0
                                 }
                             })
                             let dbKey = endpoint == FMPService.gainersEndpoint ? "gainers" : endpoint == FMPService.losersEndpoint ? "losers" : endpoint == FMPService.activeEndpoint ? "mostactive" : "uknown"
