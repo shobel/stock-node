@@ -200,10 +200,11 @@ export default class ScheduledUpdateService {
                                     latestVolume: quote.latestVolume || 0,
                                     latestUpdate: quote.latestUpdate || 0,
                                     change: quote.change || 0,
-                                    changePercent: quote.changesPercent * 100.0 || 0.0, //IEX: quote.changePercent * 100 || 0
+                                    changePercent: quote.changesPercentage * 100.0 || 0.0, //IEX: quote.changePercent * 100 || 0
                                 }
                             })
-                            this.marketDao.saveTop10Field(endpoint, filteredQuotes).then().catch()
+                            let dbKey = endpoint == FMPService.gainersEndpoint ? "gainers" : endpoint == FMPService.losersEndpoint ? "losers" : endpoint == FMPService.activeEndpoint ? "mostactive" : "uknown"
+                            this.marketDao.saveTop10Field(dbKey, filteredQuotes).then().catch()
                         }
                     }).catch()
                 }
@@ -228,16 +229,18 @@ export default class ScheduledUpdateService {
         if (smu.isMarketOpen) {
             console.log("starting real-time quote fetcher")
             QuoteService.fetchLatestQuotesUntilMarketCloses(false)
+            this.scheduled30MinUpdate()
         }  
 
         let delay = 1000*60*10 //10min
         if (!smu.isMarketOpen) {
-            setTimeout(async function() {
+            setTimeout(async function(this: ScheduledUpdateService) {
                 smu.isMarketOpen = await FMPService.getIsMarketOpen()
                 if (smu.isMarketOpen) {
                     console.log("starting real-time quote fetcher")
                     QuoteService.fetchLatestQuotesUntilMarketCloses(false)
-                }  
+                    this.scheduled30MinUpdate()
+                }
             }, delay) 
         }  
     }
