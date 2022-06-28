@@ -12,6 +12,7 @@ import PremiumDataManager from '../managers/PremiumDataManager';
 import TwitterApiService from '../services/TwitterApiService';
 import MarketDataManager from '../managers/MarketDataManager';
 import MarketDao from '../dao/MarketDao';
+import PlaidService from '../services/PlaidService';
 
 const testRouter = Router()
 
@@ -241,6 +242,15 @@ testRouter.get('/market-socials', async (req: Request, res: Response) => {
         twitterChange: socialChangeTwitter, 
         stocktwitsChange: socialChangeStocktwits
     })    
+    res.send()
+})
+
+testRouter.get('/plaid-redirect', async (req: Request, res: Response) => {
+    console.log()
+    res.send()
+})
+testRouter.get('/plaid-update', async (req: Request, res: Response) => {
+    PlaidService.getPlaidService().updateAccountBalancesForAllUsers()
     res.send()
 })
 export default testRouter

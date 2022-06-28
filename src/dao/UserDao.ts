@@ -1,5 +1,6 @@
 import BaseDao from "./BaseDao";
 import PremiumDataManager from "../managers/PremiumDataManager";
+import Utilities from "../utils/Utilities";
 
 export default class UserDao extends BaseDao {
 
@@ -178,6 +179,67 @@ export default class UserDao extends BaseDao {
     public resetTwitterMonthlyCounter(userid:string){
         return this.db.collection(this.userCollection).doc(userid).set({
             [this.twitterAccountsMonthlyCounter]: 0,
+        }, {merge:true})
+    }
+
+    public getLinkedAccount(userid:string) {
+        return this.db.collection(this.userCollection).doc(userid).get().then(snap => {
+            return snap.get("linkedAccount")
+        }).catch(err => err)
+    }
+
+    public saveLinkedAccount(userid:string, account:any){
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedAccount": account,
+        }, {merge:true})
+    }
+
+    public async deleteAccountAndHoldings(userid:string){
+        let doc = await this.db.collection(this.userCollection).doc(userid).get()
+        this.deleteFieldFromDoc(doc, "linkedAccount")
+        this.deleteFieldFromDoc(doc, "linkedHoldings")
+    }
+
+    public addLinkedAccountBalanceToBalancesCollection(userid:string, balance:any){
+        return this.db.collection(this.userCollection).doc(userid).collection("balances").doc(Date.now().toString()).set({
+            "balance": balance
+        }, {merge:false})
+    }
+
+    public getLinkedAccountBalanceHistory(userid:string) {
+        return this.db.collection(this.userCollection).doc(userid).collection("balances").get().then(snap => {
+            let retArr:any[] = []
+            if (!snap) {
+                return retArr
+            }
+            for (let doc of snap.docs){
+                let balance = doc.data().balance
+                retArr.push({
+                    timestamp: Utilities.convertUnixTimestampToDateString(parseInt(doc.id)),
+                    balance:balance
+                })
+            }
+            return retArr
+        }).catch(err => err)
+    }
+
+    public updateLinkedAccountBalanceInDoc(userid:string, balance:any){
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedAccount": {
+                balances: balance
+            },
+        }, {merge:true})
+    }
+
+    public getLinkedHoldings(userid:string){
+        return this.db.collection(this.userCollection).doc(userid).get().then(snap => {
+            return snap.get("linkedHoldings")
+        }).catch(err => err)
+    }
+
+    public saveLinkedHoldings(userid:string, holdings){
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedHoldings": holdings,
         }, {merge:true})
     }
 }

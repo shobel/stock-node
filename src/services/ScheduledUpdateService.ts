@@ -16,6 +16,7 @@ import Config from "../config/config";
 import TwitterApiService from "./TwitterApiService";
 import UserDao from "../dao/UserDao";
 import MarketDataManager from "../managers/MarketDataManager";
+import PlaidService from "./PlaidService";
 
 export default class ScheduledUpdateService {
 
@@ -390,6 +391,9 @@ export default class ScheduledUpdateService {
 
             //get all tweets
             await TwitterApiService.getDailyTweetsForAllFollowedAccounts()
+
+            //update linked portfolio balances
+            await PlaidService.getPlaidService().updateAccountBalancesForAllUsers()
         }
     }
 

@@ -90,4 +90,8 @@ export default class AuthenticationService {
     public static async signOut(userid:string) {
         return admin.auth().revokeRefreshTokens(userid)
     }
+
+    public static async deleteAccount(userid:string){
+        return admin.auth().deleteUser(userid)
+    }
 }

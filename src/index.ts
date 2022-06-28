@@ -38,19 +38,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static('public'))
 
 app.get('/', (req, res) => {
-    //res.send("no no no")
     res.sendFile(path.join(process.cwd()+'/public/html/index.html'));
 });
 app.get('/terms', (req, res) => {
-    //res.send("no no no")
     res.sendFile(path.join(process.cwd()+'/public/html/terms.html'));
 });
 app.get('/privacy', (req, res) => {
-    //res.send("no no no")
     res.sendFile(path.join(process.cwd()+'/public/html/privacy.html'));
 });
 app.get('/contact', (req, res) => {
-    //res.send("no no no")
     res.sendFile(path.join(process.cwd()+'/public/html/contact.html'));
 });
 

@@ -13,6 +13,15 @@ export default class BaseDao {
         // console.log("init basedao")
     }
 
+    public deleteAccount(userid:string) {
+        admin.auth().deleteUser(userid)
+        .then(() => {
+          console.log(`Successfully deleted user ${userid}`);
+        }).catch((error) => {
+          console.log(`Error deleting user ${userid} `, error);
+        });
+    }
+    
     public getField(collection:string, doc:string, field:string) {
         return this.db.collection(collection).doc(doc).get().then(snap => {
             return snap.get(field)
@@ -23,6 +32,12 @@ export default class BaseDao {
         return this.db.collection(collection).doc(doc).set({
             [field]: value
         }, { merge:true })
+    }
+
+    public deleteFieldFromDoc(doc:any, field:string) {
+        doc.ref.update({
+            [field]: admin.firestore.FieldValue.delete()
+        })
     }
 
     /* Will not create documents if they don't exist */

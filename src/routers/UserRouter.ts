@@ -7,6 +7,8 @@ import UserDao from '../dao/UserDao';
 import MarketDataManager from '../managers/MarketDataManager';
 import StockDao from '../dao/StockDao';
 import TwitterApiService from '../services/TwitterApiService';
+import PlaidService from '../services/PlaidService';
+import AuthenticationService from '../services/AuthenticationService';
 
 const baseRouter = require('./BaseRouter');
 const userRouter = Router();
@@ -17,6 +19,12 @@ userRouter.use((req, res, next) => {
         res.locals = {userid: userid}
         next()
     }).catch(err => {console.log("token expired")})
+})
+
+userRouter.get('/delete-account', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    let d = await AuthenticationService.deleteAccount(userid)
+    res.status(200).send(d)
 })
 
 //buys credits
@@ -292,5 +300,71 @@ userRouter.get('/get-twitter-account/:at', async (req: Request, res: Response) =
     })
 })
 
+userRouter.get('/create-link-token', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    const request = {
+        user: {
+            client_user_id: userid,
+        },
+        client_name: 'Stoccoon',
+        products: ['investments'],
+        language: 'en',
+        redirect_uri: 'https://stoccoon.com',
+        country_codes: ['US'],
+        account_filters: {
+            "investment": {
+              account_subtypes: ["all"],
+            }
+        }
+    }
+    let plaidService = PlaidService.getPlaidService()
+    let x = await plaidService.createLinkToken(request)
+    res.send({"linkToken": x.link_token})
+});
+
+userRouter.get('/get-linked-account-and-holdings', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    let ud = UserDao.getUserDaoInstance()
+    let account = await ud.getLinkedAccount(userid)
+    let holdings = await ud.getLinkedHoldings(userid)
+    res.send({
+        account: account,
+        holdings: holdings
+    })
+})
+userRouter.get('/get-linked-account-balance-history', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    let ud = UserDao.getUserDaoInstance()
+    let balanceHistory = await ud.getLinkedAccountBalanceHistory(userid)
+    res.send({balanceHistory:balanceHistory})
+})
+
+userRouter.post('/set-linked-account', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    const publicToken = req.body.publicToken
+    const account = req.body.account
+    let plaidService = PlaidService.getPlaidService()
+    let accessTokenObj:any = await plaidService.exchangePublicForAccess(publicToken)
+    account.accessToken = accessTokenObj
+    let accountAndholdings:any = await plaidService.setLinkedAccount(userid, accessTokenObj.accessToken, account)
+    await UserDao.getUserDaoInstance().saveLinkedAccount(userid, accountAndholdings.account)
+    await UserDao.getUserDaoInstance().saveLinkedHoldings(userid, accountAndholdings.holdings)
+    res.send()
+});
+
+userRouter.get('/unlink-account', async (req: Request, res: Response) => {
+    const userid = res.locals.userid
+    let linkedAccount: any = await UserDao.getUserDaoInstance().getLinkedAccount(userid)
+    if (linkedAccount) {
+        const request: any = {
+            access_token: linkedAccount.accessToken.accessToken,
+        }
+        const response = await PlaidService.getPlaidService().removeAccount(request);
+        UserDao.getUserDaoInstance().deleteAccountAndHoldings(userid)
+        res.send(response)
+    } else {
+        res.send(null)
+    }
+})
 
 export default userRouter
