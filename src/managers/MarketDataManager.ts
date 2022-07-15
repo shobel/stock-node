@@ -212,16 +212,23 @@ export default class MarketDataManager {
             let newPortValue = 0
             for (let pos of currentPositions) {
                 let quotes = await QuoteService.getLatestQuotes([pos.symbol], false)
-                let latestPrice:number = 0
                 if (quotes.hasOwnProperty(pos.symbol)){
-                    latestPrice = quotes[pos.symbol].price
+                    let latestPrice = quotes[pos.symbol].price
+                    let currentPosValue = pos.numShares * latestPrice
+                    newPortValue += currentPosValue
+                } else {
+                    //if theres a quote missing, we're done and can try again tomorrow, the 
+                    //new portfolio value wont be accurate and it will throw off everything
+                    return
                 }
-                let currentPosValue = pos.numShares * latestPrice
-                newPortValue += currentPosValue
+            }
+            if (newPortValue == 0) {
+                //new portfolio value isn't accurate and it will throw off everything
+                return
             }
             md.updateTopAnalystsPortfolioValue(newPortValue)
 
-            //adjust the portfolio poisitions
+            //adjust the portfolio positions
             let top10symbols:string[] = top10.map(s => s.symbol)
             let dollarsOfEach = newPortValue / top10symbols.length
             let newPortfolio:any[] = []
