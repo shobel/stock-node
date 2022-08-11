@@ -295,6 +295,7 @@ export default class ScheduledUpdateService {
 
                 //algorithm for updating financials for stocks who recently had earnings
                 await this.stockDao.getAllSymbolsByDaysSinceLastEarnings(80).then(async symbolMap => {
+                    console.log(Object.keys(symbolMap).length + " symbols are 80 days since last earnings")
                     for (const [symbol, lastEarningsDate] of Object.entries(symbolMap)) {
                         let nextEarningsDate = QuoteService.quoteCache[symbol]?.earningsAnnouncement
                         if (nextEarningsDate) {
@@ -307,12 +308,14 @@ export default class ScheduledUpdateService {
                                 fetch = true
                             } else {
                                 let diff = Utilities.countDaysBetweenDateStrings(nextEarningsDate, (lastEarningsDate as any))
+                                console.log(symbol + ": " + diff + " days between next and last earnings")
                                 if (diff >= 130 || 
                                     (Utilities.isDatestringBeforeAnotherDatestring(nextEarningsDate, todayString) && lastEarningsDate != nextEarningsDate)) {
                                     fetch = true
                                 }
                             }
                             if (fetch){
+                                console.log("updating all financials for " + symbol)
                                 await FMPService.updateAllFinancialDataSingleEndpoint(symbol)
                             }
                         }
