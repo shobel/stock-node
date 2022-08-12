@@ -13,6 +13,7 @@ import TwitterApiService from '../services/TwitterApiService';
 import MarketDataManager from '../managers/MarketDataManager';
 import MarketDao from '../dao/MarketDao';
 import PlaidService from '../services/PlaidService';
+import ScheduledUpdateService from '../services/ScheduledUpdateService';
 
 const testRouter = Router()
 
@@ -251,6 +252,12 @@ testRouter.get('/plaid-redirect', async (req: Request, res: Response) => {
 })
 testRouter.get('/plaid-update', async (req: Request, res: Response) => {
     PlaidService.getPlaidService().updateAccountBalancesForAllUsers()
+    res.send()
+})
+testRouter.get('/evening', async (req: Request, res: Response) => {
+    var sus:ScheduledUpdateService = new ScheduledUpdateService()
+    sus.stopSchedules()
+    sus.scheduledEveningUpdate(true)
     res.send()
 })
 export default testRouter

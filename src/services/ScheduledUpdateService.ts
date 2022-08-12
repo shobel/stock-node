@@ -164,9 +164,11 @@ export default class ScheduledUpdateService {
 
     public stopSchedules(){
         this.marketCloseUpdater.stop()
+        this.priceEarningsStatsUpdater.stop()
         this.morningUpdater.stop()
         this.min30Updater.stop()
         this.midnightUpdater.stop()
+        this.monthlyUpdater.stop()
     }
 
     //top 10 (gainers, losers, active)
@@ -286,7 +288,7 @@ export default class ScheduledUpdateService {
     }
 
     /* updates latest prices, earnings, and keystats */
-    public scheduledEveningUpdate() {
+    public scheduledEveningUpdate(justFinancials = false) {
         console.log(`${Utilities.convertUnixTimestampToTimeString12(Date.now())}: 5pm PST update`)
         this.marketDao.getTodayWasATradingDay().then(async marketWasOpenToday => {
             if (marketWasOpenToday) {
@@ -298,6 +300,7 @@ export default class ScheduledUpdateService {
                     console.log(Object.keys(symbolMap).length + " symbols are 80 days since last earnings")
                     for (const [symbol, lastEarningsDate] of Object.entries(symbolMap)) {
                         let nextEarningsDate = QuoteService.quoteCache[symbol]?.earningsAnnouncement
+                        console.log(`symbol ned: ${nextEarningsDate}`)
                         if (nextEarningsDate) {
                             if (nextEarningsDate.includes("T")) {
                                 nextEarningsDate = nextEarningsDate.split("T")[0] //FMP adds the time, gotta get rid of it
@@ -325,9 +328,11 @@ export default class ScheduledUpdateService {
                 let allSymbols = Object.values(QuoteService.quoteCache).map(q => q.latestQuote.symbol)
                 this.initNewSymbols(allSymbols, symbolsWhosEarningsWereToday)
             }
-            await TipranksService.fetchTopAnalysts().then(res => res).catch(err => err)
-            await TipranksService.computeTopAnalystSymbolScores()
-            await MarketDataManager.updateTopAnalystPortfolio()
+            if (!justFinancials){
+                await TipranksService.fetchTopAnalysts().then(res => res).catch(err => err)
+                await TipranksService.computeTopAnalystSymbolScores()
+                await MarketDataManager.updateTopAnalystPortfolio()
+            }
             //just doesn't work reliably, not worth it
             // await FidelityService.scrape()
         }).catch()
