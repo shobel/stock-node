@@ -300,7 +300,7 @@ export default class ScheduledUpdateService {
                     console.log(Object.keys(symbolMap).length + " symbols are 80 days since last earnings")
                     for (const [symbol, lastEarningsDate] of Object.entries(symbolMap)) {
                         let nextEarningsDate = QuoteService.quoteCache[symbol]?.earningsAnnouncement
-                        console.log(`symbol ned: ${nextEarningsDate}`)
+                        console.log(`symbol quotecache: ${QuoteService.quoteCache[symbol]}`)
                         if (nextEarningsDate) {
                             if (nextEarningsDate.includes("T")) {
                                 nextEarningsDate = nextEarningsDate.split("T")[0] //FMP adds the time, gotta get rid of it
