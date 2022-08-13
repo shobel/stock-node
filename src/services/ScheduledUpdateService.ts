@@ -419,6 +419,7 @@ export default class ScheduledUpdateService {
                 newStocks.push(s)
             }
         }
+        console.log(`checked ${allSymbols.length} stocks against database of ${allSymbolsInDb.length} symbols - found ${newStocks.length} new stocks`)
         for (let n of newStocks){
             //might need need to init more than just financials, new companies will have no scores and general info etc
             await FMPService.populateAllHistoryForSymbol(n)
