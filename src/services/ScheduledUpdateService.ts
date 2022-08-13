@@ -401,7 +401,7 @@ export default class ScheduledUpdateService {
             await TwitterApiService.getDailyTweetsForAllFollowedAccounts()
 
             //update linked portfolio balances
-            await PlaidService.getPlaidService().updateAccountBalancesForAllUsers()
+            await PlaidService.getPlaidService().updateHoldingsForAllUsers()
         }
     }
 
