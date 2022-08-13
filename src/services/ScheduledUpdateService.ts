@@ -326,7 +326,7 @@ export default class ScheduledUpdateService {
                 })
 
                 let allSymbols = Object.values(QuoteService.quoteCache).map(q => q.latestQuote.symbol)
-                this.initNewSymbols(allSymbols, symbolsWhosEarningsWereToday)
+                this.initNewSymbols(allSymbols)
             }
             if (!justFinancials){
                 await TipranksService.fetchTopAnalysts().then(res => res).catch(err => err)
@@ -407,21 +407,21 @@ export default class ScheduledUpdateService {
 
     //no longer saving latest prices or charts, so the only thing i might want to do here is 
     //init new stocks, but theres probably a better way, like using some IPO calendar to fetch info for new stocks
-    private async initNewSymbols(symbols: string[], stocksWithEarningsToday:any[]) {
+    private async initNewSymbols(allSymbols: string[]) {
         // console.log("updating prices and charts")
-        let latestPricesForNewStocks:SimpleQuote[] = []
-        let latestPricesForExistingStocks:SimpleQuote[] = []
-        let allLatestPrices:any = Object.values(QuoteService.quoteCache).map(q => q.latestQuote)
-        for (let quote of allLatestPrices) {
-            if (symbols.includes(quote.symbol)){
-                latestPricesForExistingStocks.push(quote)
+        let existing:string[] = []
+        let newStocks:string[] = []
+        let allSymbolsInDb = StockDao.getStockDaoInstance().getAllSymbols()
+        for (let s of allSymbols) {
+            if (allSymbolsInDb.includes(s)){
+                existing.push(s)
             } else {
-                latestPricesForNewStocks.push(quote)
+                newStocks.push(s)
             }
         }
-        for (let n of latestPricesForNewStocks){
+        for (let n of newStocks){
             //might need need to init more than just financials, new companies will have no scores and general info etc
-            await FMPService.populateAllHistoryForSymbol(n.symbol)
+            await FMPService.populateAllHistoryForSymbol(n)
         }
     }
 
