@@ -503,7 +503,7 @@ export default class StockDao extends BaseDao {
      * when the document ids are the date string or timestamp, this returns the most recent ${limit} docs from a subcollection
      * limit: any number or the string 'all'
      **/
-    getMostRecentDocsFromSubCollectionForSymbol(symbol: string, subCollection: string, limit: any) {
+    public getMostRecentDocsFromSubCollectionForSymbol(symbol: string, subCollection: string, limit: any) {
         return this.db.collection(this.stockCollection).doc(symbol.toUpperCase()).collection(subCollection)
             .limit(parseInt(limit)).orderBy('id', 'desc').get().then(snapshot => {
                 const docs: any = snapshot.docs
@@ -515,6 +515,25 @@ export default class StockDao extends BaseDao {
                     for (let i = 0; i < parseInt(limit); i++) {
                         if (docs[i]){
                             returnDocs.push(docs[i].data())
+                        }
+                    }
+                }
+                return returnDocs
+            })
+    }
+
+    public getMostRecentDocRefsFromSubCollectionForSymbol(symbol: string, subCollection: string, limit: any) {
+        return this.db.collection(this.stockCollection).doc(symbol.toUpperCase()).collection(subCollection)
+            .limit(parseInt(limit)).orderBy('id', 'desc').get().then(snapshot => {
+                const docs: any = snapshot.docs
+                const returnDocs: any[] = []
+                if (docs && docs.length > 0) {
+                    if (limit === "all") {
+                        return docs
+                    }
+                    for (let i = 0; i < parseInt(limit); i++) {
+                        if (docs[i]){
+                            returnDocs.push(docs[i])
                         }
                     }
                 }

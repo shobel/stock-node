@@ -36,6 +36,19 @@ export default class PlaidService {
         }
     }
 
+    public async updateHoldingsForAllUsers(){
+        let ud = UserDao.getUserDaoInstance()
+        let userDocs:any = await ud.getAllDocSnapshotsInCollection(ud.userCollection)
+        for (let userDoc of userDocs) {
+            let linkedAccount = userDoc.get("linkedAccount")
+            if (linkedAccount && linkedAccount.accessToken && linkedAccount.accessToken.accessToken){
+                let accountAndholdings:any = await this.setLinkedAccount(userDoc.id, linkedAccount.accessToken.accessToken, linkedAccount)
+                await UserDao.getUserDaoInstance().saveLinkedAccount(userDoc.id, accountAndholdings.account)
+                await UserDao.getUserDaoInstance().saveLinkedHoldings(userDoc.id, accountAndholdings.holdings)
+            }
+        }
+    }
+
     public async updateAccountBalancesForAllUsers(){
         let ud = UserDao.getUserDaoInstance()
         let userDocs:any = await ud.getAllDocSnapshotsInCollection(ud.userCollection)

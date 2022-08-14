@@ -388,7 +388,14 @@ export default class FMPService {
             }
             earnings = earningsRevised
             if (earnings.length) {
-                const savedEarnings = await FMPService.stockDao.getMostRecentDocsFromSubCollectionForSymbol(symbol, FMPService.stockDao.earningsCollection, earningsLimit)
+                const savedEarningsDocs = await FMPService.stockDao.getMostRecentDocRefsFromSubCollectionForSymbol(symbol, FMPService.stockDao.earningsCollection, earningsLimit)
+                const savedEarnings:any[] = []
+                const savedEarningsDocMap = {}
+                for (const savedEarningDoc of savedEarningsDocs) {
+                    var data = savedEarningDoc.data()
+                    savedEarningsDocMap[savedEarningDoc.id] = data
+                    savedEarnings.push(data)
+                }
                 for (let i = 0; i < earnings.length; i++) {
                     for (const savedEarning of savedEarnings) {
                         if (savedEarning.EPSReportDate === earnings[i].EPSReportDate) {
@@ -399,6 +406,19 @@ export default class FMPService {
                         earnings[i].yearAgo = earnings[i + 4].actualEPS
                     }
                 }
+                var deleteArr:any[] = []
+                for (const savedEarningDoc of savedEarningsDocs) {
+                    var foundMatch = false
+                    for (let i = 0; i < earnings.length; i++) {
+                        if (savedEarningsDocMap[savedEarningDoc.id].EPSReportDate === earnings[i].EPSReportDate) {
+                            foundMatch = true
+                        }
+                    }
+                    if (!foundMatch){
+                        deleteArr.push(savedEarningDoc.ref)
+                    }
+                }
+                await FMPService.stockDao.batchDelete(deleteArr)
                 await FMPService.stockDao.batchSaveMultipleDocsInSubcollectionForSymbols(FMPService.stockDao.stockCollection,
                     FMPService.stockDao.earningsCollection, 'EPSReportDate', { [symbol]: earnings })
                 await FMPService.stockDao.saveStockDocumentFieldForSymbol(symbol, FMPService.stockDao.latestEarnings, earnings[0])

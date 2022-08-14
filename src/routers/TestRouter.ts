@@ -260,4 +260,28 @@ testRouter.get('/evening', async (req: Request, res: Response) => {
     sus.scheduledEveningUpdate(true)
     res.send()
 })
+testRouter.get('/earnings', async (req: Request, res: Response) => {
+    let symbols = StockDao.getStockDaoInstance().getAllSymbols()
+    let start = Date.now()
+    await FMPService.updateEarningsForSymbols(symbols) //for next quarter eps estimates
+    let end = Date.now()
+    console.log(`EPS Estimates done in ${(end - start) / 1000.0}s`)
+    start = Date.now()
+    await FMPService.updateAnnualEarningsEstimates(symbols) //for annual eps estimate which is for forward pe calculation, these are not accurate from what i can tell
+    end = Date.now()
+    console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`)
+    res.send()
+})
+testRouter.get('/update-earnings/:symbol', async (req: Request, res: Response) => {
+    let symbol = req.params.symbol
+    let start = Date.now()
+    await FMPService.updateEarningsForSymbols([symbol])//for next quarter eps estimates
+    let end = Date.now()
+    console.log(`EPS Estimates done in ${(end - start) / 1000.0}s`)
+    start = Date.now()
+    await FMPService.updateAnnualEarningsEstimates([symbol]) //for annual eps estimate which is for forward pe calculation, these are not accurate from what i can tell
+    end = Date.now()
+    console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`)
+    res.send()
+})
 export default testRouter
