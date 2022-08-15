@@ -426,11 +426,11 @@ export default class StockDataManager {
             StockDataManager.iexDataService.recommendationsEndpoint, 999999, true, false)
     }
 
-    //FMP on demand, no more than once every 1 week
+    //FMP on demand, no more than once every 2 days
     public static async getInsidersForSymbol(symbol: string) {
         let needToFetch: boolean = false
         let result = StockDataManager.stockDao.getStockDocumentFieldForSymbol(symbol, StockDataManager.stockDao.insidersField)
-        if (!result || Utilities.countDaysBetweenDates(Date.now(), result.lastUpdated) > 7) {
+        if (!result || Utilities.countDaysBetweenDates(Date.now(), result.lastUpdated) > 2) {
             needToFetch = true
             result = await FMPService.getInsiderSummaryForSymbol(symbol)
         }
