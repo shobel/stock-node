@@ -388,10 +388,8 @@ export default class ScheduledUpdateService {
                 await FMPService.updateEarningsForSymbols(symbols) //for next quarter eps estimates
                 let end = Date.now()
                 console.log(`EPS Estimates done in ${(end - start) / 1000.0}s`)
-                start = Date.now()
                 await FMPService.updateAnnualEarningsEstimates(symbols) //for annual eps estimate which is for forward pe calculation, these are not accurate from what i can tell
-                end = Date.now()
-                console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`)
+                console.log(`Processing annual earnings estimates`)
             }
 
             //analysis
