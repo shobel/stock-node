@@ -432,10 +432,10 @@ export default class FMPService {
             let url = `${FMPService.baseUrlv3}${FMPService.estimatesEndpoint}/${s.toUpperCase()}?limit=${1}&apikey=${FMPService.apikey}`
             FMPService.fetchDataFromUrlWithCallback(url, function(res) {
                 if (res.length){
-                    console.log(`fetched ${i+=1} earnings estimates(${res[0].symbol})`)
+                    //console.log(`fetched ${i+=1} earnings estimates(${res[0].symbol})`)
                     FMPService.stockDao.saveStockDocumentFieldForSymbol(s, FMPService.stockDao.latestAnnualEstimates, res[0])
                 } else {
-                    console.log(`fetched ${i+=1} earnings estimates (${s} no data)`)
+                    //console.log(`fetched ${i+=1} earnings estimates (${s} no data)`)
                 }
             })
         }
