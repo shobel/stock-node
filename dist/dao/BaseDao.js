@@ -9,6 +9,14 @@ class BaseDao {
         this.batchLimit = 500;
         // console.log("init basedao")
     }
+    deleteAccount(userid) {
+        admin.auth().deleteUser(userid)
+            .then(() => {
+            console.log(`Successfully deleted user ${userid}`);
+        }).catch((error) => {
+            console.log(`Error deleting user ${userid} `, error);
+        });
+    }
     getField(collection, doc, field) {
         return this.db.collection(collection).doc(doc).get().then(snap => {
             return snap.get(field);
@@ -18,6 +26,11 @@ class BaseDao {
         return this.db.collection(collection).doc(doc).set({
             [field]: value
         }, { merge: true });
+    }
+    deleteFieldFromDoc(doc, field) {
+        doc.ref.update({
+            [field]: admin.firestore.FieldValue.delete()
+        });
     }
     /* Will not create documents if they don't exist */
     /* Updates fields but will fail if the document doesn't exist */

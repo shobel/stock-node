@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const admin = require("firebase-admin");
-const auth = require("firebase/auth");
 const VerifyAppleToken_1 = require("../utils/VerifyAppleToken");
 const UserManager_1 = require("../managers/UserManager");
 const rp = require('request-promise');
@@ -61,11 +60,6 @@ class AuthenticationService {
         }
         return null;
     }
-    static async signInWithEmailAndPassword(email, password) {
-        auth.signInWithEmailAndPassword(auth.getAuth(), email, password).then(user => {
-            console.log(user);
-        });
-    }
     static async getNewIdTokenWithRefreshToken(refreshToken) {
         let tokenResponse = null;
         try {
@@ -94,6 +88,9 @@ class AuthenticationService {
     }
     static async signOut(userid) {
         return admin.auth().revokeRefreshTokens(userid);
+    }
+    static async deleteAccount(userid) {
+        return admin.auth().deleteUser(userid);
     }
 }
 exports.default = AuthenticationService;

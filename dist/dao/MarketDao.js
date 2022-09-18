@@ -17,6 +17,9 @@ class MarketDao extends BaseDao_1.default {
         this.gainersField = "gainers";
         this.losersField = "losers";
         this.activeField = "mostactive";
+        this.topAnalysts = "topAnalysts";
+        this.socialSentimentDoc = "socialSentiment";
+        this.topAnalystsPortfolioDoc = "topAnalystsPortfolio";
         this.holidaysDoc = "holidays";
         this.lastUpdatedTipranksAnalysts = "lastUpdatedTipranksAnalysts";
         //economy collections (top-level)
@@ -143,12 +146,22 @@ class MarketDao extends BaseDao_1.default {
     }
     getTop10Field(field) {
         return this.db.collection(this.marketCollection).doc(this.top10Doc).get()
-            .then(result => result ? result[field] : result).catch();
+            .then(result => {
+            return result ? result.get(field) : result;
+        }).catch();
     }
     saveTop10Field(field, data) {
         return this.db.collection(this.marketCollection).doc(this.top10Doc).set({
             [field]: data
         }, { merge: true }).then(result => result).catch();
+    }
+    getSocialSentimentData() {
+        return this.db.collection(this.marketCollection).doc(this.socialSentimentDoc).get()
+            .then(result => result ? result.data() : null).catch(err => err);
+    }
+    saveSocialSentimentData(data) {
+        return this.db.collection(this.marketCollection).doc(this.socialSentimentDoc).set(data)
+            .then(result => result).catch(err => err);
     }
     getStocktwitsTrending() {
         return this.db.collection(this.stocktwitsTrendingCollection).get()
@@ -184,6 +197,17 @@ class MarketDao extends BaseDao_1.default {
     }
     deleteTipranksTopSymbolsCollection() {
         return this.deleteAllDocumentsInCollection(this.tipranksTopSymbolsCollection);
+    }
+    getTopAnalystsPortfolio() {
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).get()
+            .then(doc => doc.data()).catch(err => err);
+    }
+    updateTopAnalystsPortfolioPositions(positions) {
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).set({ currentPositions: positions }).then(res => res).catch(err => err);
+    }
+    updateTopAnalystsPortfolioValue(newValue) {
+        return this.db.collection(this.marketCollection).doc(this.topAnalystsPortfolioDoc).collection("portfolioValue")
+            .doc(Date.now().toString()).set({ value: newValue }).then(res => res).catch(err => err);
     }
 }
 exports.default = MarketDao;

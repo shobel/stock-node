@@ -3,19 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const MarketDao_1 = require("../dao/MarketDao");
 const IexDataService_1 = require("../services/IexDataService");
 const FMPService_1 = require("../services/FMPService");
+const QuoteService_1 = require("../services/QuoteService");
+const StockDao_1 = require("../dao/StockDao");
 class MarketDataManager {
     static initWeeklyEconomicData() {
-        return MarketDataManager.iexDataService.getWeeklyEconomicData(true).then(data => {
+        return FMPService_1.default.getWeeklyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionWeekly, "id", data, false);
         });
     }
     static initMonthlyEconomicData() {
-        return MarketDataManager.iexDataService.getMonthlyEconomicData(true).then(data => {
+        return FMPService_1.default.getMonthlyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionMonthly, "id", data, false);
         });
     }
     static initQuarterlyEconomicData() {
-        return FMPService_1.default.getQuarterlyEconomicData().then(data => {
+        return FMPService_1.default.getQuarterlyEconomicData(true).then(data => {
             return MarketDataManager.marketDao.batchSaveMultipleDocsInCollectionWithFieldIds(MarketDataManager.marketDao.economicDataCollectionQuarterly, "id", data, false);
         });
     }
@@ -75,7 +77,21 @@ class MarketDataManager {
         }).catch();
     }
     static getAllTop10() {
-        return MarketDataManager.marketDao.getAllTop10().then(result => result).catch();
+        return MarketDataManager.marketDao.getAllTop10().then(result => result).catch(err => err);
+    }
+    static getAllMarketSocialSentiments() {
+        let symbols = StockDao_1.default.getStockDaoInstance().getAllSymbols();
+        return MarketDataManager.marketDao.getSocialSentimentData().then(result => {
+            for (let key of Object.keys(result)) {
+                if (result.hasOwnProperty(key) && result[key]) {
+                    result[key] = result[key].filter(i => symbols.includes(i.symbol));
+                    if (result[key].length > 10) {
+                        result[key] = result[key].slice(0, 10);
+                    }
+                }
+            }
+            return result;
+        }).catch(err => err);
     }
     static getMarketNews() {
         return MarketDataManager.marketDao.getMarketNews().then(result => result);
@@ -167,6 +183,80 @@ class MarketDataManager {
             combinedData["economy"] = economy;
             return combinedData;
         });
+    }
+    static async updateTopAnalystPortfolio() {
+        let md = MarketDao_1.default.getMarketDaoInstance();
+        let top10 = await md.getTop10Field(md.topAnalysts);
+        let portfolio = await md.getTopAnalystsPortfolio();
+        if (portfolio && portfolio.currentPositions && portfolio.currentPositions.length) {
+            //if we have a portfolio, calculate and save the new value of it
+            let currentPositions = portfolio.currentPositions;
+            let newPortValue = 0;
+            for (let pos of currentPositions) {
+                let quotes = await QuoteService_1.default.getLatestQuotes([pos.symbol], false);
+                if (quotes.hasOwnProperty(pos.symbol)) {
+                    let latestPrice = quotes[pos.symbol].price;
+                    let currentPosValue = pos.numShares * latestPrice;
+                    newPortValue += currentPosValue;
+                }
+                else {
+                    //if theres a quote missing, we're done and can try again tomorrow, the 
+                    //new portfolio value wont be accurate and it will throw off everything
+                    return;
+                }
+            }
+            if (newPortValue == 0) {
+                //new portfolio value isn't accurate and it will throw off everything
+                return;
+            }
+            md.updateTopAnalystsPortfolioValue(newPortValue);
+            //adjust the portfolio positions
+            let top10symbols = top10.map(s => s.symbol);
+            let dollarsOfEach = newPortValue / top10symbols.length;
+            let newPortfolio = [];
+            for (let s of top10symbols) {
+                let quotes = await QuoteService_1.default.getLatestQuotes([s], false);
+                let latestPrice = 0;
+                if (quotes.hasOwnProperty(s)) {
+                    latestPrice = quotes[s].price;
+                }
+                let position = {
+                    symbol: s,
+                    numShares: dollarsOfEach / latestPrice
+                };
+                newPortfolio.push(position);
+            }
+            md.updateTopAnalystsPortfolioPositions(newPortfolio);
+        }
+        else {
+            //create a portfolio
+            let newPortfolio = [];
+            for (let top of top10) {
+                let quotes = await QuoteService_1.default.getLatestQuotes([top.symbol], false);
+                let latestPrice = 0;
+                if (quotes.hasOwnProperty(top.symbol)) {
+                    latestPrice = quotes[top.symbol].price;
+                }
+                let numShares = 1.0 / latestPrice;
+                let position = {
+                    symbol: top.symbol,
+                    numShares: numShares
+                };
+                newPortfolio.push(position);
+            }
+            let newPortValue = 0;
+            for (let pos of newPortfolio) {
+                let quotes = await QuoteService_1.default.getLatestQuotes([pos.symbol], false);
+                let latestPrice = 0;
+                if (quotes.hasOwnProperty(pos.symbol)) {
+                    latestPrice = quotes[pos.symbol].price;
+                }
+                let currentPosValue = pos.numShares * latestPrice;
+                newPortValue += currentPosValue;
+            }
+            md.updateTopAnalystsPortfolioValue(newPortValue);
+            md.updateTopAnalystsPortfolioPositions(newPortfolio);
+        }
     }
 }
 exports.default = MarketDataManager;

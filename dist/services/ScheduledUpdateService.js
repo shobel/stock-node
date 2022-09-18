@@ -15,6 +15,8 @@ const FearGreedService_1 = require("./FearGreedService");
 const QuoteService_1 = require("./QuoteService");
 const TwitterApiService_1 = require("./TwitterApiService");
 const UserDao_1 = require("../dao/UserDao");
+const MarketDataManager_1 = require("../managers/MarketDataManager");
+const PlaidService_1 = require("./PlaidService");
 class ScheduledUpdateService {
     constructor() {
         this.quarterlyCollectionMap = {};
@@ -36,7 +38,7 @@ class ScheduledUpdateService {
         //runs every 30 minutes on trading days //TODO change back
         this.min30Updater = new cron.CronJob('0 */30 * * * *', this.scheduled30MinUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined);
         //runs at 6:30am PST every day (0 30 6 * * *)
-        this.morningUpdater = new cron.CronJob('0 30 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined);
+        this.morningUpdater = new cron.CronJob('0 31 6 * * *', this.scheduledMorningUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined);
         //runs at 1:05pm PST every trading day (0 5 13 * * *)
         this.marketCloseUpdater = new cron.CronJob('0 5 13 * * *', this.scheduledAfternoonUpdate.bind(this), null, true, 'America/Los_Angeles', null, false, undefined, undefined);
         //runs at 5:05pm PST every trading day (0 5 17 * * *)
@@ -124,9 +126,11 @@ class ScheduledUpdateService {
     }
     stopSchedules() {
         this.marketCloseUpdater.stop();
+        this.priceEarningsStatsUpdater.stop();
         this.morningUpdater.stop();
         this.min30Updater.stop();
         this.midnightUpdater.stop();
+        this.monthlyUpdater.stop();
     }
     //top 10 (gainers, losers, active)
     // - using IEX because its very cheap (30 points), could easily use FMP which is free
@@ -137,44 +141,69 @@ class ScheduledUpdateService {
         FMPService_1.default.getMarketNews(30).then((newsArray) => {
             ScheduledUpdateService.marketNews = newsArray;
         });
-        this.marketDao.getTodayWasATradingDay().then(marketWasOpenToday => {
+        this.marketDao.getTodayWasATradingDay().then(async (marketWasOpenToday) => {
             if (marketWasOpenToday && StockMarketUtility_1.default.getStockMarketUtility().isMarketOpen) {
                 console.log(`${Utilities_1.default.convertUnixTimestampToTimeString12(Date.now())} saving top10s`);
                 const top10Endpoints = [
-                    this.iexDataService.gainersEndpoint,
-                    this.iexDataService.losersEndpoint,
-                    this.iexDataService.mostActiveEndpoint
+                    FMPService_1.default.gainersEndpoint,
+                    FMPService_1.default.losersEndpoint,
+                    FMPService_1.default.activeEndpoint
+                    // this.iexDataService.gainersEndpoint,
+                    // this.iexDataService.losersEndpoint,
+                    // this.iexDataService.mostActiveEndpoint
                 ];
                 for (const endpoint of top10Endpoints) {
-                    this.iexDataService.getListType(endpoint).then(result => {
+                    FMPService_1.default.getListType(endpoint).then(result => {
                         if (result) {
                             //result is an array of quotes
                             const filteredQuotes = result.map(quote => {
                                 return {
                                     symbol: quote.symbol,
-                                    companyName: quote.companyName,
-                                    latestPrice: quote.latestPrice || 0,
+                                    companyName: quote.name,
+                                    latestPrice: quote.price || 0,
                                     latestVolume: quote.latestVolume || 0,
                                     latestUpdate: quote.latestUpdate || 0,
                                     change: quote.change || 0,
-                                    changePercent: quote.changePercent * 100 || 0
+                                    changePercent: quote.changesPercentage || 0.0,
                                 };
                             });
-                            this.marketDao.saveTop10Field(endpoint, filteredQuotes).then().catch();
+                            let dbKey = endpoint == FMPService_1.default.gainersEndpoint ? "gainers" : endpoint == FMPService_1.default.losersEndpoint ? "losers" : endpoint == FMPService_1.default.activeEndpoint ? "mostactive" : "uknown";
+                            this.marketDao.saveTop10Field(dbKey, filteredQuotes).then().catch();
                         }
                     }).catch();
                 }
+                let trendingSocials = await FMPService_1.default.getTrendingBySocialSentiment();
+                let socialChangeTwitter = await FMPService_1.default.getSocialSentimentChanges("twitter");
+                let socialChangeStocktwits = await FMPService_1.default.getSocialSentimentChanges("stocktwits");
+                this.marketDao.saveSocialSentimentData({
+                    trending: trendingSocials,
+                    twitterChange: socialChangeTwitter,
+                    stocktwitsChange: socialChangeStocktwits
+                });
             }
         }).catch();
     }
     // market-wide news and the start of real-time quotes
     async scheduledMorningUpdate() {
         let smu = StockMarketUtility_1.default.getStockMarketUtility();
-        console.log(`${Utilities_1.default.convertUnixTimestampToTimeString12(Date.now())}: 630am pst update`);
+        console.log(`${Utilities_1.default.convertUnixTimestampToTimeString12(Date.now())}: 635am pst update`);
+        //in case fmp says market isnt open when it really is (due to some error), we should check a bunch of times 
         smu.isMarketOpen = await FMPService_1.default.getIsMarketOpen();
         if (smu.isMarketOpen) {
             console.log("starting real-time quote fetcher");
             QuoteService_1.default.fetchLatestQuotesUntilMarketCloses(false);
+            this.scheduled30MinUpdate();
+        }
+        let delay = 1000 * 60 * 10; //10min
+        if (!smu.isMarketOpen) {
+            setTimeout(async function () {
+                smu.isMarketOpen = await FMPService_1.default.getIsMarketOpen();
+                if (smu.isMarketOpen) {
+                    console.log("starting real-time quote fetcher");
+                    QuoteService_1.default.fetchLatestQuotesUntilMarketCloses(false);
+                    this.scheduled30MinUpdate();
+                }
+            }, delay);
         }
     }
     // sector performance and economic data
@@ -189,7 +218,7 @@ class ScheduledUpdateService {
             return null;
         }).then(() => {
             //weekly economy
-            return this.iexDataService.getWeeklyEconomicData().then(data => {
+            return FMPService_1.default.getWeeklyEconomicData().then(data => {
                 for (let d of data) {
                     this.marketDao.saveEconomicData(this.marketDao.economicDataCollectionWeekly, d.id, d).then().catch();
                 }
@@ -197,7 +226,7 @@ class ScheduledUpdateService {
             });
         }).then(() => {
             //monthly economy
-            return this.iexDataService.getMonthlyEconomicData().then(data => {
+            return FMPService_1.default.getMonthlyEconomicData().then(data => {
                 for (let d of data) {
                     this.marketDao.saveEconomicData(this.marketDao.economicDataCollectionMonthly, d.id, d).then().catch();
                 }
@@ -216,7 +245,7 @@ class ScheduledUpdateService {
         }).catch();
     }
     /* updates latest prices, earnings, and keystats */
-    scheduledEveningUpdate() {
+    scheduledEveningUpdate(justFinancials = false) {
         console.log(`${Utilities_1.default.convertUnixTimestampToTimeString12(Date.now())}: 5pm PST update`);
         this.marketDao.getTodayWasATradingDay().then(async (marketWasOpenToday) => {
             if (marketWasOpenToday) {
@@ -224,9 +253,11 @@ class ScheduledUpdateService {
                 const symbolsWhosEarningsWereToday = [];
                 //algorithm for updating financials for stocks who recently had earnings
                 await this.stockDao.getAllSymbolsByDaysSinceLastEarnings(80).then(async (symbolMap) => {
-                    var _a;
+                    var _a, _b;
+                    console.log(Object.keys(symbolMap).length + " symbols are 80 days since last earnings");
                     for (const [symbol, lastEarningsDate] of Object.entries(symbolMap)) {
-                        let nextEarningsDate = (_a = QuoteService_1.default.quoteCache[symbol]) === null || _a === void 0 ? void 0 : _a.earningsAnnouncement;
+                        let nextEarningsDate = (_b = (_a = QuoteService_1.default.quoteCache[symbol]) === null || _a === void 0 ? void 0 : _a.latestQuote) === null || _b === void 0 ? void 0 : _b.earningsAnnouncement;
+                        //console.log(`symbol quotecache: ${JSON.stringify(QuoteService.quoteCache[symbol])}`)
                         if (nextEarningsDate) {
                             if (nextEarningsDate.includes("T")) {
                                 nextEarningsDate = nextEarningsDate.split("T")[0]; //FMP adds the time, gotta get rid of it
@@ -238,21 +269,27 @@ class ScheduledUpdateService {
                             }
                             else {
                                 let diff = Utilities_1.default.countDaysBetweenDateStrings(nextEarningsDate, lastEarningsDate);
+                                console.log(symbol + ": " + diff + " days between next and last earnings");
                                 if (diff >= 130 ||
                                     (Utilities_1.default.isDatestringBeforeAnotherDatestring(nextEarningsDate, todayString) && lastEarningsDate != nextEarningsDate)) {
                                     fetch = true;
                                 }
                             }
                             if (fetch) {
+                                console.log("updating all financials for " + symbol);
                                 await FMPService_1.default.updateAllFinancialDataSingleEndpoint(symbol);
                             }
                         }
                     }
                 });
                 let allSymbols = Object.values(QuoteService_1.default.quoteCache).map(q => q.latestQuote.symbol);
-                this.initNewSymbols(allSymbols, symbolsWhosEarningsWereToday);
+                this.initNewSymbols(allSymbols);
             }
-            await TipranksService_1.default.fetchTopAnalysts().then(res => res).catch(err => err);
+            if (!justFinancials) {
+                await TipranksService_1.default.fetchTopAnalysts().then(res => res).catch(err => err);
+                await TipranksService_1.default.computeTopAnalystSymbolScores();
+                await MarketDataManager_1.default.updateTopAnalystPortfolio();
+            }
             //just doesn't work reliably, not worth it
             // await FidelityService.scrape()
         }).catch();
@@ -282,7 +319,7 @@ class ScheduledUpdateService {
                     });
                 }
             });
-            //get recommendations every 60 days (once per 3 months)
+            //get recommendations every 90 days (once per 3 months)
             await this.stockDao.getMostRecentDocFromSubCollectionForSymbol(firstSymbol, this.stockDao.recommendationCollection).then(rec => {
                 if (!rec || Utilities_1.default.countDaysBetweenDates(Date.now(), rec.id) >= 90) {
                     console.log("Midnight update: recommendations (tri-monthly)");
@@ -309,26 +346,29 @@ class ScheduledUpdateService {
             await AnalysisService_1.default.doAnalysis();
             //get all tweets
             await TwitterApiService_1.default.getDailyTweetsForAllFollowedAccounts();
+            //update linked portfolio balances
+            await PlaidService_1.default.getPlaidService().updateHoldingsForAllUsers();
         }
     }
     //no longer saving latest prices or charts, so the only thing i might want to do here is 
     //init new stocks, but theres probably a better way, like using some IPO calendar to fetch info for new stocks
-    async initNewSymbols(symbols, stocksWithEarningsToday) {
+    async initNewSymbols(allSymbols) {
         // console.log("updating prices and charts")
-        let latestPricesForNewStocks = [];
-        let latestPricesForExistingStocks = [];
-        let allLatestPrices = Object.values(QuoteService_1.default.quoteCache).map(q => q.latestQuote);
-        for (let quote of allLatestPrices) {
-            if (symbols.includes(quote.symbol)) {
-                latestPricesForExistingStocks.push(quote);
+        let existing = [];
+        let newStocks = [];
+        let allSymbolsInDb = StockDao_1.default.getStockDaoInstance().getAllSymbols();
+        for (let s of allSymbols) {
+            if (allSymbolsInDb.includes(s)) {
+                existing.push(s);
             }
             else {
-                latestPricesForNewStocks.push(quote);
+                newStocks.push(s);
             }
         }
-        for (let n of latestPricesForNewStocks) {
+        console.log(`checked ${allSymbols.length} stocks against database of ${allSymbolsInDb.length} symbols - found ${newStocks.length} new stocks`);
+        for (let n of newStocks) {
             //might need need to init more than just financials, new companies will have no scores and general info etc
-            await FMPService_1.default.populateAllHistoryForSymbol(n.symbol);
+            await FMPService_1.default.populateAllHistoryForSymbol(n);
         }
     }
     async scheduledMonthlyUpdate() {

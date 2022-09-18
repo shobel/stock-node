@@ -140,7 +140,7 @@ class QuoteService {
     }
 }
 exports.default = QuoteService;
-QuoteService.updateInterval = 120000; //1 min
+QuoteService.updateInterval = 120000; //2 min
 QuoteService.simplifiedChartInterval = 600000; //every 10min
 QuoteService.quoteCache = {}; // { symbol:string -> { latestQuote:FMPQuote, simplifiedChart: number[]} }
 QuoteService.extendedQuoteCache = {}; //{symbol:string -> { price:number, priceTime:number, updated:number }

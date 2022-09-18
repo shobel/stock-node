@@ -284,4 +284,9 @@ testRouter.get('/update-earnings/:symbol', async (req: Request, res: Response) =
     console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`)
     res.send()
 })
+testRouter.get('/insider/:symbol', async (req: Request, res: Response) => {
+    let symbol = req.params.symbol
+    await FMPService.getInsiderSummaryForSymbol(symbol) 
+    res.send()
+})
 export default testRouter

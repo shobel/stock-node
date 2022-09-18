@@ -11,6 +11,7 @@ class AppDao extends BaseDao_1.default {
         this.productsDoc = "products";
         this.creditValueBase = 0.1; //1 credit = 10cents, can be updated manually
         this.dollarOfIexCredits = 1000000; //1 dollar gets you 500k iex credits
+        this.tipranksFetchCounterField = "tipranksFetchCounter";
         //only populates packages and such when there is no data in the app collection
         //if there is data, it must be edited manually
         this.initProducts();
@@ -211,6 +212,19 @@ class AppDao extends BaseDao_1.default {
             }
             return false;
         });
+    }
+    getTipranksFetchCounter() {
+        return this.db.collection(this.appCollection).doc(this.generalDoc).get()
+            .then(snapshot => {
+            let c = snapshot.get(this.tipranksFetchCounterField);
+            if (c == null) {
+                return 0;
+            }
+            return c;
+        });
+    }
+    setTipranksFetchCounter(counter) {
+        return this.db.collection(this.appCollection).doc(this.generalDoc).set({ [this.tipranksFetchCounterField]: counter }, { merge: true }).catch();
     }
 }
 exports.default = AppDao;

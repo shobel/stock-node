@@ -129,7 +129,9 @@ class StockDataManager {
         }
         else {
             let tipranksData = await StockDataManager.getTipranksDataForSymbol(symbol);
-            combinedData["tipranksAnalystsAll"] = tipranksData.experts;
+            if (tipranksData) {
+                combinedData["tipranksAnalystsAll"] = tipranksData.experts;
+            }
             let ptot = tipranksData === null || tipranksData === void 0 ? void 0 : tipranksData.priceTargetsOverTime;
             if (ptot && ptot.length && ptot[0].date && ptot[0].date.includes("/")) {
                 for (let p of ptot) {
@@ -338,6 +340,7 @@ class StockDataManager {
         }
         else {
             let ss = await FMPService_1.default.getSocialSentiment(symbol);
+            ss = ss.reverse();
             ss.lastUpdated = Date.now();
             StockDataManager.socialSentimentCache[symbol] = ss;
             return ss;
@@ -464,16 +467,17 @@ class StockDataManager {
         if (!StockDataManager.allCompaniesCache || !StockDataManager.allCompaniesCache.length ||
             Date.now() - StockDataManager.allCompaniesCacheLastUpdate > StockDataManager.allCompaniesCacheValidity) {
             let companies = StockDataManager.stockDao.getStockDocumentFieldForAllSymbols(StockDataManager.stockDao.companyField);
-            companies.map(c => {
-                const company = {
+            let companiesSimped = [];
+            for (let c of companies) {
+                const companySimped = {
                     symbol: c.symbol,
                     companyName: c.companyName
                 };
-                return company;
-            });
-            StockDataManager.allCompaniesCache = companies;
+                companiesSimped.push(companySimped);
+            }
+            StockDataManager.allCompaniesCache = companiesSimped;
             StockDataManager.allCompaniesCacheLastUpdate = Date.now();
-            return companies;
+            return companiesSimped;
         }
         else {
             return StockDataManager.allCompaniesCache;
@@ -482,7 +486,7 @@ class StockDataManager {
     //this endpoint was down for a while but now back up (3/7/22), might not be available in the future 
     static getTipranksDataForSymbol(symbol) {
         let data = StockDataManager.stockDao.getTipranksDataForSymbol(symbol);
-        if (!data || !data.hasOwnProperty("data") || Object.keys(data.data).length <= 1 || (Date.now() - data.updated > Utilities_1.default.oneWeekMs)) {
+        if (!data || !data.hasOwnProperty("data") || !data["data"] || Object.keys(data.data).length <= 1 || (Date.now() - data.updated > Utilities_1.default.oneWeekMs)) {
             //data was missing or more than 1 week old
             return TipranksService_1.default.fetchTipranksApiDataForStock(symbol).then(tipranksData => {
                 StockDataManager.stockDao.setTipranksDataForSymbol(symbol, tipranksData).then(res => res).catch(err => err);
@@ -628,6 +632,23 @@ class StockDataManager {
             }
             return StockDataManager.getScoresForSymbols();
         }).then((scoreObjs) => {
+            if (areSettingsDefault && scoreObjs.length) {
+                let returnObj = [];
+                for (const so of scoreObjs) {
+                    if (!symbols.length || symbols.includes(so.symbol)) {
+                        let o = {
+                            symbol: so.symbol,
+                            companyName: so.companyName,
+                            industry: so.industry,
+                            rank: so.scores.rank,
+                            industryRank: so.scores.industryRank,
+                            percentile: so.scores.percentile
+                        };
+                        returnObj.push(o);
+                    }
+                }
+                return returnObj;
+            }
             if (settings && (settings.disabled.length || Object.keys(settings.weightings).length)) {
                 const overallScores = [];
                 for (const scoreObj of scoreObjs) {

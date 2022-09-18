@@ -223,6 +223,26 @@ class StockDao extends BaseDao_1.default {
         //     console.log(err)
         // })
     }
+    async deleteEverythingForSymbols(symbolsToDelete) {
+        let stockRefsToDelete = [];
+        let count = 0;
+        for (let s of symbolsToDelete) {
+            let doc = await this.db.collection(this.stockCollection).doc(s).get();
+            stockRefsToDelete.push(doc.ref);
+            for (let col of this.allCollectionsForStock) {
+                let colRef = await this.db.collection(this.stockCollection).doc(s).collection(col).get();
+                for (let doc of colRef.docs) {
+                    stockRefsToDelete.push(doc.ref);
+                }
+            }
+            count += 1;
+            console.log(`prepared to delete ${s} (${count}/${symbolsToDelete.length})`);
+        }
+        if (stockRefsToDelete.length) {
+            console.log(`deleting ${stockRefsToDelete.length} docs for these symbols`);
+            await this.batchDelete(stockRefsToDelete);
+        }
+    }
     async deleteEmptySymbolDocs() {
         let stockRefsToDelete = [];
         let symbolsToDelete = [];
@@ -450,6 +470,24 @@ class StockDao extends BaseDao_1.default {
                 for (let i = 0; i < parseInt(limit); i++) {
                     if (docs[i]) {
                         returnDocs.push(docs[i].data());
+                    }
+                }
+            }
+            return returnDocs;
+        });
+    }
+    getMostRecentDocRefsFromSubCollectionForSymbol(symbol, subCollection, limit) {
+        return this.db.collection(this.stockCollection).doc(symbol.toUpperCase()).collection(subCollection)
+            .limit(parseInt(limit)).orderBy('id', 'desc').get().then(snapshot => {
+            const docs = snapshot.docs;
+            const returnDocs = [];
+            if (docs && docs.length > 0) {
+                if (limit === "all") {
+                    return docs;
+                }
+                for (let i = 0; i < parseInt(limit); i++) {
+                    if (docs[i]) {
+                        returnDocs.push(docs[i]);
                     }
                 }
             }

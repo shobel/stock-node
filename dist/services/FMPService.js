@@ -4,6 +4,7 @@ const Utilities_1 = require("../utils/Utilities");
 const StockDao_1 = require("../dao/StockDao");
 const ScheduledUpdateService_1 = require("./ScheduledUpdateService");
 const StockDataService_1 = require("./StockDataService");
+const delay = require("delay");
 const fetch = require('node-fetch');
 const fetchRetry = require('fetch-retry')(fetch);
 class FMPService {
@@ -321,7 +322,14 @@ class FMPService {
             }
             earnings = earningsRevised;
             if (earnings.length) {
-                const savedEarnings = await FMPService.stockDao.getMostRecentDocsFromSubCollectionForSymbol(symbol, FMPService.stockDao.earningsCollection, earningsLimit);
+                const savedEarningsDocs = await FMPService.stockDao.getMostRecentDocRefsFromSubCollectionForSymbol(symbol, FMPService.stockDao.earningsCollection, earningsLimit);
+                const savedEarnings = [];
+                const savedEarningsDocMap = {};
+                for (const savedEarningDoc of savedEarningsDocs) {
+                    var data = savedEarningDoc.data();
+                    savedEarningsDocMap[savedEarningDoc.id] = data;
+                    savedEarnings.push(data);
+                }
                 for (let i = 0; i < earnings.length; i++) {
                     for (const savedEarning of savedEarnings) {
                         if (savedEarning.EPSReportDate === earnings[i].EPSReportDate) {
@@ -332,6 +340,19 @@ class FMPService {
                         earnings[i].yearAgo = earnings[i + 4].actualEPS;
                     }
                 }
+                var deleteArr = [];
+                for (const savedEarningDoc of savedEarningsDocs) {
+                    var foundMatch = false;
+                    for (let i = 0; i < earnings.length; i++) {
+                        if (savedEarningsDocMap[savedEarningDoc.id].EPSReportDate === earnings[i].EPSReportDate) {
+                            foundMatch = true;
+                        }
+                    }
+                    if (!foundMatch) {
+                        deleteArr.push(savedEarningDoc.ref);
+                    }
+                }
+                await FMPService.stockDao.batchDelete(deleteArr);
                 await FMPService.stockDao.batchSaveMultipleDocsInSubcollectionForSymbols(FMPService.stockDao.stockCollection, FMPService.stockDao.earningsCollection, 'EPSReportDate', { [symbol]: earnings });
                 await FMPService.stockDao.saveStockDocumentFieldForSymbol(symbol, FMPService.stockDao.latestEarnings, earnings[0]);
             }
@@ -445,6 +466,12 @@ class FMPService {
             return null;
         });
     }
+    static getListType(endpoint) {
+        const url = `${this.baseUrlv3}/${endpoint}?apikey=${FMPService.apikey}`;
+        return fetch(url)
+            .then((res) => res.json())
+            .then((data) => data).catch();
+    }
     static getMarketNews(numItems) {
         let url = `${FMPService.baseUrlv3}${FMPService.newsEndpoint}?limit=${numItems}&apikey=${FMPService.apikey}`;
         return FMPService.fetchDataFromUrl(url).then(res => {
@@ -475,9 +502,21 @@ class FMPService {
         // const todayString = Utilities.convertUnixTimestampToDateString(Date.now())
         const url = `${FMPService.baseUrlv3}historical-chart/1min/${symbol}?apikey=${FMPService.apikey}`;
         return FMPService.fetchDataFromUrl(url).then(chart => {
-            let filteredResult = chart.filter(r => r.high && r.low && r.open && r.close);
+            let latestDate = "";
+            if (chart.length > 0) {
+                let entry = chart[0];
+                latestDate = entry.date.includes(" ") ? entry.date.split(" ")[0] : "";
+            }
+            else {
+                return [];
+            }
+            let reversed = chart.reverse();
+            let filteredResult = reversed.filter(r => r.high && r.low && r.open && r.close);
+            filteredResult = filteredResult.filter(e => {
+                let d = e.date.includes(" ") ? e.date.split(" ")[0] : "";
+                return d == latestDate;
+            });
             //fmp gives most recent price first AND sometimes includes prices from the previous day at the end (WTF?!)
-            filteredResult = filteredResult.slice(0, 391).reverse();
             const chartEntries = [];
             let volumeSum = 0;
             for (let i = 0; i < filteredResult.length; i++) {
@@ -486,14 +525,14 @@ class FMPService {
                     entry.volume = 0;
                 }
                 const chartEntry = {
-                    date: entry.date.split(" ")[0],
-                    label: Utilities_1.default.convertUnixTimestampToTimeString12(entry.date),
-                    minute: Utilities_1.default.convertUnixTimestampToTimeString24(entry.date),
+                    date: entry.date.includes(" ") ? entry.date.split(" ")[0] : "",
+                    label: entry.date.includes(" ") ? Utilities_1.default.convert24hTo12H(entry.date.split(" ")[1]) : "",
+                    minute: entry.date.includes(" ") ? Utilities_1.default.convert24hTo12H(entry.date.split(" ")[1]) : "",
                     open: entry.open,
                     close: entry.close,
                     high: entry.high,
                     low: entry.low,
-                    volume: entry.volume - volumeSum,
+                    volume: entry.volume //entry.volume - volumeSum,
                 };
                 volumeSum += chartEntry.volume;
                 chartEntries.push(chartEntry);
@@ -556,6 +595,15 @@ class FMPService {
     }
     static getSocialSentiment(symbol) {
         const url = `${FMPService.baseUrlv4}historical/social-sentiment?symbol=${symbol}&apikey=${FMPService.apikey}`;
+        return FMPService.fetchDataFromUrl(url);
+    }
+    static getTrendingBySocialSentiment() {
+        const url = `${FMPService.baseUrlv4}social-sentiment/trending?apikey=${FMPService.apikey}`;
+        return FMPService.fetchDataFromUrl(url);
+    }
+    //options are twitter or stocktwits
+    static getSocialSentimentChanges(source) {
+        const url = `${FMPService.baseUrlv4}social-sentiments/change?type=bullish&source=${source}&apikey=${FMPService.apikey}`;
         return FMPService.fetchDataFromUrl(url);
     }
     static async getAdvancedStatsForSymbol(symbol, period, limit) {
@@ -698,10 +746,12 @@ class FMPService {
             if (filtered.length == 1) {
                 days = 1;
             }
-            else if (filtered.length > 1) {
-                days = Utilities_1.default.countDaysBetweenDateStrings(filtered[0].transactionDate, filtered[filtered.length - 1].transactionDate);
-            }
             for (let item of filtered) {
+                let d = Utilities_1.default.countDaysBetweenDateStrings(filtered[0].transactionDate, item.transactionDate);
+                days = d;
+                if (d > 180) {
+                    break;
+                }
                 let total = item.securitiesTransacted * item.price;
                 if (item.transactionType == sellType) {
                     total = -total;
@@ -720,9 +770,81 @@ class FMPService {
             return data.map(n => FMPService.convertNews(n));
         });
     }
-    static getQuarterlyEconomicData() {
-        let from = `&from=2010-01-01`;
+    static getWeeklyEconomicData(init = false) {
+        let from = Utilities_1.default.convertUnixTimestampToDateString(Date.now());
+        if (init) {
+            from = `2017-01-01`;
+        }
         let aggregatedObject = {};
+        let url = `${FMPService.baseUrlv4}economic?name=initialClaims&from=${from}&apikey=${FMPService.apikey}`;
+        return fetch(url)
+            .then((res) => res.json())
+            .then((data1) => {
+            aggregatedObject = FMPService.addEconomyArrayDataToAggregate(aggregatedObject, "initialClaims", data1);
+            return Object.values(aggregatedObject);
+        });
+    }
+    static getMonthlyEconomicData(init = false) {
+        let from = Utilities_1.default.convertUnixTimestampToDateString(Date.now());
+        if (init) {
+            from = `2017-01-01`;
+        }
+        let aggregatedObject = {};
+        let url = `${FMPService.baseUrlv4}economic?name=smoothedUSRecessionProbabilities&from=${from}&apikey=${FMPService.apikey}`;
+        return fetch(url)
+            .then((res) => res.json())
+            .then((data1) => {
+            aggregatedObject = FMPService.addEconomyArrayDataToAggregate(aggregatedObject, "recessionProbability", data1);
+            url = `${FMPService.baseUrlv4}economic?name=unemploymentRate&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data2) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "unemploymentPercent", data2);
+            url = `${FMPService.baseUrlv4}economic?name=federalFunds&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data3) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "fedFundsRate", data3);
+            url = `${FMPService.baseUrlv4}economic?name=CPI&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data4) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerPriceIndex", data4);
+            url = `${FMPService.baseUrlv4}economic?name=industrialProductionTotalIndex&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data5) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "industrialProductionIndex", data5);
+            url = `${FMPService.baseUrlv4}economic?name=retailSales&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data6) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailSales", data6);
+            url = `${FMPService.baseUrlv4}economic?name=consumerSentiment&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data7) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "consumerSentiment", data7);
+            url = `${FMPService.baseUrlv4}economic?name=retailMoneyFunds&from=${from}&apikey=${FMPService.apikey}`;
+            return delay(1000).then(() => fetch(url));
+        })
+            .then((res) => res.json())
+            .then((data8) => {
+            aggregatedObject = this.addEconomyArrayDataToAggregate(aggregatedObject, "retailMoneyFunds", data8);
+            return Object.values(aggregatedObject);
+        });
+    }
+    static getQuarterlyEconomicData(init = false) {
+        let from = Utilities_1.default.convertUnixTimestampToDateString(Date.now());
+        if (init) {
+            from = `2015-01-01`;
+        }
         const url = `${FMPService.baseUrlv4}economic?name=realGDP&from=${from}&apikey=${FMPService.apikey}`;
         return fetch(url)
             .then((res) => res.json())
@@ -970,6 +1092,24 @@ class FMPService {
         }
         return aggregateArray;
     }
+    static addEconomyArrayDataToAggregate(aggregatedObject, key, data) {
+        for (let d of data) {
+            let dateTimestamp = d.date;
+            //sandbox doesnt have the date field so we have to use "updated" for testing
+            if (!dateTimestamp) {
+                dateTimestamp = d.updated;
+            }
+            if (dateTimestamp) {
+                const dateString = dateTimestamp;
+                if (!aggregatedObject.hasOwnProperty(dateString)) {
+                    aggregatedObject[dateString] = {};
+                    aggregatedObject[dateString].id = dateString;
+                }
+                aggregatedObject[dateString][key] = d.value;
+            }
+        }
+        return aggregatedObject;
+    }
 }
 exports.default = FMPService;
 FMPService.apikey = process.env.FMP_API_KEY;
@@ -986,6 +1126,9 @@ FMPService.incomeEndpoint = "income-statement";
 FMPService.balanceSheetEndpoint = "balance-sheet-statement";
 FMPService.newsEndpoint = "stock_news";
 FMPService.estimatesEndpoint = "analyst-estimates";
+FMPService.gainersEndpoint = "stock_market/gainers";
+FMPService.losersEndpoint = "stock_market/losers";
+FMPService.activeEndpoint = "stock_market/actives";
 FMPService.cooldown = 300; //the advertised rate limit is 300/min (5/sec) (once every 200 ms) so we go a little higher for some wiggle room
 FMPService.lastFetchTime = 0;
 FMPService.fetchQueue = [];

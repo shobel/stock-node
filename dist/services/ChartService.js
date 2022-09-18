@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const StockMarketUtility_1 = require("../utils/StockMarketUtility");
 const Utilities_1 = require("../utils/Utilities");
 const FMPService_1 = require("./FMPService");
-const IexDataService_1 = require("./IexDataService");
 class ChartService {
     constructor() {
         //caches
@@ -93,27 +92,53 @@ class ChartService {
             lastDbFetch: Date.now()
         };
     }
-    getIntradayChartForSymbol(symbol) {
+    async getIntradayChartForSymbol(symbol) {
         if (this.isIntradayCacheItemValid(symbol)) {
             const intradayChartCache = this.chartCache[symbol][this.intradayCacheKey];
             return Promise.resolve(intradayChartCache.intradayPrices);
         }
-        return IexDataService_1.default.getIexDataServiceInstance().getIntradayPricesForSymbol(symbol, null).then(result => {
-            let processed = [];
-            let latestNonNullValues = {};
-            for (let i = 0; i < result.length; i++) {
-                let r = result[i];
-                if (!r.close) {
-                    processed.push(latestNonNullValues);
-                }
-                else {
-                    latestNonNullValues = r;
-                    processed.push(r);
-                }
+        let result = await FMPService_1.default.getIntradayChartForSymbol(symbol);
+        let processed = [];
+        let latestNonNullValues = {};
+        for (let i = 0; i < result.length; i++) {
+            let r = result[i];
+            if (!r.close && !r.high && !r.open && !r.low) {
+                processed.push(latestNonNullValues);
             }
-            this.setIntradayCacheItem(symbol, processed);
-            return processed;
-        });
+            else {
+                latestNonNullValues = r;
+                processed.push(r);
+            }
+        }
+        this.setIntradayCacheItem(symbol, processed);
+        return processed;
+        // return IexDataService.getIexDataServiceInstance().getIntradayPricesForSymbol(symbol, null).then(async result => {
+        //     let countWithoutData:number = 0
+        //     for (let i = 0; i < result.length; i++){
+        //         let r = result[i]
+        //         if (!r.close && !r.high && !r.open && !r.low){
+        //             countWithoutData += 1
+        //         }
+        //     }
+        //     if ((countWithoutData / result.length) > 0.5) {
+        //         //if more than 50% of the data is missing, fetch non-iex
+        //         let intraday = await FMPService.getIntradayChartForSymbol(symbol) 
+        //         result = intraday
+        //     }
+        //     let processed:any[] = []
+        //     let latestNonNullValues:any = {}
+        //     for (let i = 0; i < result.length; i++){
+        //         let r = result[i]
+        //         if (!r.close && !r.high && !r.open && !r.low){
+        //             processed.push(latestNonNullValues)
+        //         } else {
+        //             latestNonNullValues = r
+        //             processed.push(r)
+        //         }
+        //     }
+        //     this.setIntradayCacheItem(symbol, processed)
+        //     return processed
+        // })
     }
 }
 exports.default = ChartService;

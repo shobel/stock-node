@@ -171,14 +171,30 @@ class AnalysisService {
             if (earningsArray) {
                 earningsArray = earningsArray.reverse();
             }
-            if (earningsArray && earningsArray.length > 0 && earningsArray[earningsArray.length - 1].id > todayString) {
-                const consensusEPS = earningsArray[earningsArray.length - 1].consensusEPS;
-                const yearAgo = earningsArray[earningsArray.length - 1].yearAgo;
-                if (consensusEPS && yearAgo) {
-                    const epsGrowth = (consensusEPS - yearAgo) / yearAgo;
-                    if (Utilities_1.default.isValidNumber(epsGrowth)) {
-                        marketMetrics.epsNextQGrowth.push(epsGrowth);
-                        symbolMetrics[symbol].epsNextQGrowth = epsGrowth;
+            if (earningsArray && earningsArray.length > 0) {
+                if (earningsArray[earningsArray.length - 1].id > todayString) {
+                    //this is a future prediction
+                    const consensusEPS = earningsArray[earningsArray.length - 1].consensusEPS;
+                    const yearAgo = earningsArray[earningsArray.length - 1].yearAgo;
+                    if (consensusEPS && yearAgo) {
+                        const epsGrowth = (consensusEPS - yearAgo) / yearAgo;
+                        if (Utilities_1.default.isValidNumber(epsGrowth)) {
+                            marketMetrics.epsNextQGrowth.push(epsGrowth);
+                            symbolMetrics[symbol].epsNextQGrowth = epsGrowth;
+                        }
+                    }
+                }
+                else {
+                    //this is not a future prediction and we can just use actualEPS
+                    //i believe that this case happens when the next quarter estimates just arent available yet
+                    const actualEPS = earningsArray[earningsArray.length - 1].actualEPS;
+                    const yearAgo = earningsArray[earningsArray.length - 1].yearAgo;
+                    if (actualEPS && yearAgo) {
+                        const epsGrowth = (actualEPS - yearAgo) / yearAgo;
+                        if (Utilities_1.default.isValidNumber(epsGrowth)) {
+                            marketMetrics.epsNextQGrowth.push(epsGrowth);
+                            symbolMetrics[symbol].epsNextQGrowth = epsGrowth;
+                        }
                     }
                 }
             }
@@ -189,10 +205,14 @@ class AnalysisService {
                 let diff = parseInt(futureYear) - parseInt(currentYear);
                 let revCagr = Math.pow(est.estimatedRevenueAvg / incAnnual.totalRevenue, 1 / diff) - 1;
                 let incCagr = Math.pow(est.estimatedNetIncomeAvg / incAnnual.netIncome, 1 / diff) - 1;
-                marketMetrics.futureRevenueGrowth.push(revCagr);
-                symbolMetrics[symbol].futureRevenueGrowth = revCagr;
-                marketMetrics.futureIncomeGrowth.push(incCagr);
-                symbolMetrics[symbol].futureIncomeGrowth = incCagr;
+                if (revCagr && Utilities_1.default.isValidNumber(revCagr)) {
+                    marketMetrics.futureRevenueGrowth.push(revCagr);
+                    symbolMetrics[symbol].futureRevenueGrowth = revCagr;
+                }
+                if (incCagr && Utilities_1.default.isValidNumber(incCagr)) {
+                    marketMetrics.futureIncomeGrowth.push(incCagr);
+                    symbolMetrics[symbol].futureIncomeGrowth = incCagr;
+                }
             }
             //profit margin growth
             let advancedArray = advanced[symbol];
@@ -690,13 +710,13 @@ class AnalysisService {
         return lowerIsBetter ? (1 - (value - arr[0]) / (arr[arr.length - 1] - arr[0])) : (value - arr[0]) / (arr[arr.length - 1] - arr[0]);
     }
     static computeScoreFromPriceTarget(currentPrice, priceTargetObj) {
-        //=(UPSIDE*100) + (log(NUMANALYSTS, 2)*20) + ((LOWSIDE*100)/2)
+        //=(UPSIDE*100) + (log(NUMANALYSTS, 2)*20) + ((LOWSIDE*100)/3)
         const analystScore = Math.log2(priceTargetObj.numberOfAnalysts) * 20;
         let upside = ((priceTargetObj.priceTargetAverage - currentPrice) / currentPrice) * 100.0;
         if (upside > 100) {
             upside = 100;
         }
-        let lowUpside = (((currentPrice - priceTargetObj.priceTargetLow) / currentPrice) * 100.0) / 2;
+        let lowUpside = (((priceTargetObj.priceTargetLow - currentPrice) / currentPrice) * 100.0) / 3;
         if (lowUpside > 50) {
             lowUpside = 50;
         }
@@ -704,7 +724,7 @@ class AnalysisService {
         if (priceTargetObj.numberOfAnalysts <= 1) {
             lowUpside = 0;
         }
-        let score = analystScore + upside * lowUpside;
+        let score = analystScore + upside + lowUpside;
         return score;
     }
     static computeGrowthForMetric(symbol, metric, arr, field, marketMetrics, symbolMetrics, calculateRate, limit, growthRateMetric = "") {

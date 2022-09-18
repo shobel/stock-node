@@ -12,6 +12,10 @@ const FearGreedService_1 = require("../services/FearGreedService");
 const TipranksService_1 = require("../services/TipranksService");
 const PremiumDataManager_1 = require("../managers/PremiumDataManager");
 const TwitterApiService_1 = require("../services/TwitterApiService");
+const MarketDataManager_1 = require("../managers/MarketDataManager");
+const MarketDao_1 = require("../dao/MarketDao");
+const PlaidService_1 = require("../services/PlaidService");
+const ScheduledUpdateService_1 = require("../services/ScheduledUpdateService");
 const testRouter = express_1.Router();
 /************************************************************/
 /********************* TEST ENDPOINTS ***********************/
@@ -107,9 +111,7 @@ testRouter.get('/agg', async (req, res) => {
     res.send(arr);
 });
 testRouter.get('/tipranks1', async (req, res) => {
-    for (let i = 0; i < 12; i++) {
-        await TipranksService_1.default.fetchTopAnalysts();
-    }
+    await TipranksService_1.default.fetchTopAnalysts();
 });
 testRouter.get('/manyquotes', async (req, res) => {
     let r = await FMPService_1.default.screener({ operation: ">", value: "50000000000" }, null, null, null, null, null, null);
@@ -203,7 +205,87 @@ testRouter.get('/compare-lists', async (req, res) => {
             stocksFMPHasThatIexDoesnt.push(f.symbol);
         }
     }
-    res.send({});
+    res.send({
+        FMPmissing: stocksIexHasThatFMPDoesnt,
+        IEXmissing: stocksFMPHasThatIexDoesnt
+    });
+});
+testRouter.get('/removeotc', async (req, res) => {
+    let fmp = await FMPService_1.default.getQuoteForAllSymbols();
+    let symbols = fmp.map(f => f.symbol);
+    let companyInfos = await IexDataService_1.default.getIexDataServiceInstance().getCompanyForSymbols(symbols);
+    let symbolsToDelete = [];
+    for (let c of Object.values(companyInfos)) {
+        let ci = c.company;
+        let ex = ci.exchange;
+        if (ex && (ex.toLowerCase().includes("otc") || ex.toLowerCase().includes("cboe"))) {
+            symbolsToDelete.push(ci.symbol);
+        }
+    }
+    await StockDao_1.default.getStockDaoInstance().deleteEverythingForSymbols(symbolsToDelete);
+    res.send();
+});
+testRouter.get('/compute-top-analysts-scores', async (req, res) => {
+    let scores = await TipranksService_1.default.computeTopAnalystSymbolScores();
+    res.send(scores);
+});
+testRouter.get('/update-top-analyst-portfolio', async (req, res) => {
+    await MarketDataManager_1.default.updateTopAnalystPortfolio();
+    res.send();
+});
+testRouter.get('/market-socials', async (req, res) => {
+    let trendingSocials = await FMPService_1.default.getTrendingBySocialSentiment();
+    let socialChangeTwitter = await FMPService_1.default.getSocialSentimentChanges("twitter");
+    let socialChangeStocktwits = await FMPService_1.default.getSocialSentimentChanges("stocktwits");
+    MarketDao_1.default.getMarketDaoInstance().saveSocialSentimentData({
+        trending: trendingSocials,
+        twitterChange: socialChangeTwitter,
+        stocktwitsChange: socialChangeStocktwits
+    });
+    res.send();
+});
+testRouter.get('/plaid-redirect', async (req, res) => {
+    console.log();
+    res.send();
+});
+testRouter.get('/plaid-update', async (req, res) => {
+    PlaidService_1.default.getPlaidService().updateAccountBalancesForAllUsers();
+    res.send();
+});
+testRouter.get('/evening', async (req, res) => {
+    var sus = new ScheduledUpdateService_1.default();
+    sus.stopSchedules();
+    sus.scheduledEveningUpdate(true);
+    res.send();
+});
+testRouter.get('/earnings', async (req, res) => {
+    let symbols = StockDao_1.default.getStockDaoInstance().getAllSymbols();
+    let start = Date.now();
+    await FMPService_1.default.updateEarningsForSymbols(symbols); //for next quarter eps estimates
+    let end = Date.now();
+    console.log(`EPS Estimates done in ${(end - start) / 1000.0}s`);
+    start = Date.now();
+    await FMPService_1.default.updateAnnualEarningsEstimates(symbols); //for annual eps estimate which is for forward pe calculation, these are not accurate from what i can tell
+    end = Date.now();
+    console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`);
+    res.send();
+});
+testRouter.get('/update-earnings/:symbol', async (req, res) => {
+    let symbol = req.params.symbol;
+    let start = Date.now();
+    await FMPService_1.default.updateEarningsForSymbols([symbol]); //for next quarter eps estimates
+    let end = Date.now();
+    console.log(`EPS Estimates done in ${(end - start) / 1000.0}s`);
+    start = Date.now();
+    await FMPService_1.default.updateAnnualEarningsEstimates([symbol]); //for annual eps estimate which is for forward pe calculation, these are not accurate from what i can tell
+    end = Date.now();
+    console.log(`Annual Earnings Estimates done in ${(end - start) / 1000.0}s`);
+    res.send();
+});
+testRouter.get('/insider/:symbol', async (req, res) => {
+    let symbol = req.params.symbol;
+    await FMPService_1.default.getInsiderSummaryForSymbol(symbol);
+    res.send();
 });
 exports.default = testRouter;
 //# sourceMappingURL=TestRouter.js.map

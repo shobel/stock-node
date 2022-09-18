@@ -55,14 +55,16 @@ class TwitterApiService {
         let twitterAccountsSet = new Set();
         for (let snap of allUserSnapshots) {
             let twitterList = snap.get(UserDao_1.default.getUserDaoInstance().twitterAccountsArrayField);
-            for (let twitterAccount of twitterList) {
-                twitterAccountsSet.add(twitterAccount);
+            if (twitterList != null) {
+                for (let twitterAccount of twitterList) {
+                    twitterAccountsSet.add(twitterAccount);
+                }
             }
         }
         for (let account of twitterAccountsSet) {
             let since = (new Date(Date.now() - TwitterApiService.dayInMs)).toISOString();
             let returnData = await TwitterApiService.updateTwitterAccountData(account, since, 10);
-            if (!returnData) {
+            if (!returnData || !returnData.cashtags) {
                 continue;
             }
             let docsnap = await TwitterDao_1.default.twitterDao.getDocSnapshot(account);
@@ -199,7 +201,7 @@ class TwitterApiService {
         let udi = UserDao_1.default.getUserDaoInstance();
         let userSnap = await udi.getDocSnapshotsInCollection(udi.userCollection, userid);
         let existingTwitterAccounts = userSnap.get(udi.twitterAccountsArrayField);
-        if (!existingTwitterAccounts.includes(username.toLowerCase())) {
+        if (!existingTwitterAccounts || !existingTwitterAccounts.includes(username.toLowerCase())) {
             return;
         }
         if (symbol.toUpperCase() == "RECENT") {
@@ -216,10 +218,12 @@ class TwitterApiService {
         let userSnap = await udi.getDocSnapshotsInCollection(udi.userCollection, userid);
         let existingTwitterAccounts = userSnap.get(udi.twitterAccountsArrayField);
         let twitterAccounts = [];
-        for (let acc of existingTwitterAccounts) {
-            let snap = await TwitterDao_1.default.twitterDao.getDocSnapshot(acc.toLowerCase());
-            if (snap) {
-                twitterAccounts.push(snap.data());
+        if (existingTwitterAccounts != null) {
+            for (let acc of existingTwitterAccounts) {
+                let snap = await TwitterDao_1.default.twitterDao.getDocSnapshot(acc.toLowerCase());
+                if (snap) {
+                    twitterAccounts.push(snap.data());
+                }
             }
         }
         return twitterAccounts;

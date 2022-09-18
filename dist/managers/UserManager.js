@@ -43,10 +43,10 @@ class UserManager {
             }
             if (!settings.weightings) {
                 settings.weightings = {
-                    valuation: 20,
-                    future: 20,
-                    past: 20,
-                    health: 20,
+                    valuation: 25,
+                    future: 25,
+                    past: 25,
+                    health: 25,
                 };
             }
             return settings;

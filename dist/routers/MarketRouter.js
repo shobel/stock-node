@@ -53,6 +53,11 @@ marketRouter.get('/top10', async (req, res) => {
         res.send(data);
     }).catch();
 });
+marketRouter.get('/socials', async (req, res) => {
+    MarketDataManager_1.default.getAllMarketSocialSentiments().then(data => {
+        res.send(data);
+    }).catch();
+});
 /* returns array of stocktwits trending symbols */
 // tested
 marketRouter.get('/stocktwits-trending-symbols/:symbolsOnly', async (req, res) => {

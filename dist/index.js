@@ -29,9 +29,18 @@ const app = express();
 app.use('/api', BaseRouter_1.default);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(express.static('public'));
 app.get('/', (req, res) => {
-    //res.send("no no no")
-    res.sendFile(path.join(process.cwd() + '/public//index.html'));
+    res.sendFile(path.join(process.cwd() + '/public/html/index.html'));
+});
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(process.cwd() + '/public/html/terms.html'));
+});
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(process.cwd() + '/public/html/privacy.html'));
+});
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(process.cwd() + '/public/html/contact.html'));
 });
 //Start local server for development. Apparently firebase function will automatically listen on a port
 //So we can get rid of this when we deploy

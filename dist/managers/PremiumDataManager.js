@@ -177,13 +177,17 @@ class PremiumDataManager {
                 case PremiumDataManager.ANALYST_RECOMMENDATIONS:
                     for (let symbol of symbols) {
                         let snap = StockDataManager_1.default.stockDao.getStockDocumentSnapshotForSymbol(symbol);
-                        combinedData[symbol] = snap.get(StockDataManager_1.default.stockDao.latestRecommendations);
+                        if (snap) {
+                            combinedData[symbol] = snap.get(StockDataManager_1.default.stockDao.latestRecommendations);
+                        }
                     }
                     return combinedData;
                 case PremiumDataManager.ANALYST_PRICE_TARGET_UPSIDE:
                     for (let symbol of symbols) {
                         let snap = StockDataManager_1.default.stockDao.getStockDocumentSnapshotForSymbol(symbol);
-                        combinedData[symbol] = snap.get(StockDataManager_1.default.stockDao.latestPriceTarget);
+                        if (snap) {
+                            combinedData[symbol] = snap.get(StockDataManager_1.default.stockDao.latestPriceTarget);
+                        }
                     }
                     return combinedData;
             }

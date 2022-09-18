@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const BaseDao_1 = require("./BaseDao");
 const PremiumDataManager_1 = require("../managers/PremiumDataManager");
+const Utilities_1 = require("../utils/Utilities");
 class UserDao extends BaseDao_1.default {
     constructor() {
         super();
@@ -130,6 +131,12 @@ class UserDao extends BaseDao_1.default {
             .doc(Date.now().toString()).set({
             message: issue,
             email: email
+        }).then(() => {
+            return this.db.collection(this.issuesCollection).doc(Date.now().toString()).set({
+                userid: userid,
+                message: issue,
+                email: email
+            });
         });
     }
     addTwitterAccount(userid, newTwitterUsernames, newMonthlyCount) {
@@ -146,6 +153,59 @@ class UserDao extends BaseDao_1.default {
     resetTwitterMonthlyCounter(userid) {
         return this.db.collection(this.userCollection).doc(userid).set({
             [this.twitterAccountsMonthlyCounter]: 0,
+        }, { merge: true });
+    }
+    getLinkedAccount(userid) {
+        return this.db.collection(this.userCollection).doc(userid).get().then(snap => {
+            return snap.get("linkedAccount");
+        }).catch(err => err);
+    }
+    saveLinkedAccount(userid, account) {
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedAccount": account,
+        }, { merge: true });
+    }
+    async deleteAccountAndHoldings(userid) {
+        let doc = await this.db.collection(this.userCollection).doc(userid).get();
+        this.deleteFieldFromDoc(doc, "linkedAccount");
+        this.deleteFieldFromDoc(doc, "linkedHoldings");
+    }
+    addLinkedAccountBalanceToBalancesCollection(userid, balance) {
+        return this.db.collection(this.userCollection).doc(userid).collection("balances").doc(Date.now().toString()).set({
+            "balance": balance
+        }, { merge: false });
+    }
+    getLinkedAccountBalanceHistory(userid) {
+        return this.db.collection(this.userCollection).doc(userid).collection("balances").get().then(snap => {
+            let retArr = [];
+            if (!snap) {
+                return retArr;
+            }
+            for (let doc of snap.docs) {
+                let balance = doc.data().balance;
+                retArr.push({
+                    timestamp: Utilities_1.default.convertUnixTimestampToDateString(parseInt(doc.id)),
+                    balance: balance
+                });
+            }
+            return retArr;
+        }).catch(err => err);
+    }
+    updateLinkedAccountBalanceInDoc(userid, balance) {
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedAccount": {
+                balances: balance
+            },
+        }, { merge: true });
+    }
+    getLinkedHoldings(userid) {
+        return this.db.collection(this.userCollection).doc(userid).get().then(snap => {
+            return snap.get("linkedHoldings");
+        }).catch(err => err);
+    }
+    saveLinkedHoldings(userid, holdings) {
+        return this.db.collection(this.userCollection).doc(userid).set({
+            "linkedHoldings": holdings,
         }, { merge: true });
     }
 }

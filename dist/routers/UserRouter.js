@@ -8,6 +8,8 @@ const PremiumDataManager_1 = require("../managers/PremiumDataManager");
 const UserDao_1 = require("../dao/UserDao");
 const MarketDataManager_1 = require("../managers/MarketDataManager");
 const TwitterApiService_1 = require("../services/TwitterApiService");
+const PlaidService_1 = require("../services/PlaidService");
+const AuthenticationService_1 = require("../services/AuthenticationService");
 const baseRouter = require('./BaseRouter');
 const userRouter = express_1.Router();
 //verify token for all user functions
@@ -16,6 +18,11 @@ userRouter.use((req, res, next) => {
         res.locals = { userid: userid };
         next();
     }).catch(err => { console.log("token expired"); });
+});
+userRouter.get('/delete-account', async (req, res) => {
+    const userid = res.locals.userid;
+    let d = await AuthenticationService_1.default.deleteAccount(userid);
+    res.status(200).send(d);
 });
 //buys credits
 userRouter.post('/verifyReceipt', async (req, res) => {
@@ -259,6 +266,70 @@ userRouter.get('/get-twitter-account/:at', async (req, res) => {
     TwitterApiService_1.default.searchForTwitterAccount(userid, at).then(result => {
         res.send(result);
     });
+});
+userRouter.get('/create-link-token', async (req, res) => {
+    const userid = res.locals.userid;
+    const request = {
+        user: {
+            client_user_id: userid,
+        },
+        client_name: 'Stoccoon',
+        products: ['investments'],
+        language: 'en',
+        redirect_uri: 'https://stoccoon.com',
+        country_codes: ['US'],
+        account_filters: {
+            "investment": {
+                account_subtypes: ["all"],
+            }
+        }
+    };
+    let plaidService = PlaidService_1.default.getPlaidService();
+    let x = await plaidService.createLinkToken(request);
+    res.send({ "linkToken": x.link_token });
+});
+userRouter.get('/get-linked-account-and-holdings', async (req, res) => {
+    const userid = res.locals.userid;
+    let ud = UserDao_1.default.getUserDaoInstance();
+    let account = await ud.getLinkedAccount(userid);
+    let holdings = await ud.getLinkedHoldings(userid);
+    res.send({
+        account: account,
+        holdings: holdings
+    });
+});
+userRouter.get('/get-linked-account-balance-history', async (req, res) => {
+    const userid = res.locals.userid;
+    let ud = UserDao_1.default.getUserDaoInstance();
+    let balanceHistory = await ud.getLinkedAccountBalanceHistory(userid);
+    res.send({ balanceHistory: balanceHistory });
+});
+userRouter.post('/set-linked-account', async (req, res) => {
+    const userid = res.locals.userid;
+    const publicToken = req.body.publicToken;
+    const account = req.body.account;
+    let plaidService = PlaidService_1.default.getPlaidService();
+    let accessTokenObj = await plaidService.exchangePublicForAccess(publicToken);
+    account.accessToken = accessTokenObj;
+    let accountAndholdings = await plaidService.setLinkedAccount(userid, accessTokenObj.accessToken, account);
+    await UserDao_1.default.getUserDaoInstance().saveLinkedAccount(userid, accountAndholdings.account);
+    await UserDao_1.default.getUserDaoInstance().saveLinkedHoldings(userid, accountAndholdings.holdings);
+    res.send();
+});
+userRouter.get('/unlink-account', async (req, res) => {
+    const userid = res.locals.userid;
+    let linkedAccount = await UserDao_1.default.getUserDaoInstance().getLinkedAccount(userid);
+    if (linkedAccount) {
+        const request = {
+            access_token: linkedAccount.accessToken.accessToken,
+        };
+        const response = await PlaidService_1.default.getPlaidService().removeAccount(request);
+        UserDao_1.default.getUserDaoInstance().deleteAccountAndHoldings(userid);
+        res.send(response);
+    }
+    else {
+        res.send(null);
+    }
 });
 exports.default = userRouter;
 //# sourceMappingURL=UserRouter.js.map

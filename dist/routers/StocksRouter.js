@@ -4,14 +4,13 @@ const express_1 = require("express");
 const StockDataManager_1 = require("../managers/StockDataManager");
 const ChartService_1 = require("../services/ChartService");
 const StockMarketUtility_1 = require("../utils/StockMarketUtility");
-const process_1 = require("process");
 // Init shared
 const stockRouter = express_1.Router();
 const chartService = ChartService_1.default.getChartServiceInstance();
-stockRouter.use((req, res, next) => {
-    console.log(process_1.memoryUsage());
-    next();
-});
+// stockRouter.use((req, res, next) => {
+//     console.log(memoryUsage());
+//     next()
+// })
 /* Returns map of quotes. Keys are symbols and values are quote objects */
 // TODO: when a client requests quotes, and the market is in premarket or aftermarket, 
 //      we can call IEX quote endpoint for the extended quotes. It costs 1 point per quote.
